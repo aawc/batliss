@@ -164,6 +164,17 @@
                 </div>
 
                 <div class="setting-row">
+                    <label class="text-sm opacity-80">Category</label>
+                    <select id="set-category">
+                        <option value="Featured">Featured</option>
+                        <option value="Nature">Nature</option>
+                        <option value="Architecture">Architecture</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Custom">Custom</option>
+                    </select>
+                </div>
+
+                <div class="setting-row" id="row-bg-query">
                     <label class="text-sm opacity-80">Image Keywords</label>
                     <input type="text" id="set-bg-query" placeholder="nature, architecture">
                 </div>
@@ -171,6 +182,13 @@
                 <div class="setting-row">
                     <label class="text-sm opacity-80">Your Name</label>
                     <input type="text" id="set-user-name" placeholder="Friend">
+                </div>
+
+
+
+                <div class="setting-row">
+                    <label class="text-sm opacity-80">Unsplash Access Key</label>
+                    <input type="password" id="set-api-key" placeholder="Paste Access Key here">
                 </div>
 
                 <div class="mt-8 pt-6 border-t border-white/10">
@@ -191,8 +209,10 @@
             format: '24',
             seconds: false,
             font: 'Inter',
+            category: 'Featured',
             bg: 'nature,landscape',
             name: '',
+            apiKey: '',
             seed: Math.floor(Math.random() * 1000)
         };
 
@@ -213,17 +233,31 @@
             if (params.has('s')) state.seconds = params.get('s') === '1';
             if (params.has('font')) state.font = params.get('font');
             if (params.has('bg')) state.bg = params.get('bg');
+            if (params.has('cat')) state.category = params.get('cat');
             if (params.has('n')) state.name = params.get('n');
+            if (params.has('key')) state.apiKey = params.get('key');
 
             document.body.style.fontFamily = state.font + ", sans-serif";
             
             document.getElementById('set-clock-format').value = state.format;
             document.getElementById('set-show-seconds').checked = state.seconds;
             document.getElementById('set-font').value = state.font;
+            document.getElementById('set-category').value = state.category;
             document.getElementById('set-bg-query').value = state.bg;
             document.getElementById('set-user-name').value = state.name;
+            document.getElementById('set-api-key').value = state.apiKey;
 
+            updateKeywordVisibility();
             updateSyncURL(true);
+        }
+
+        function updateKeywordVisibility() {
+            const elRowBgQuery = document.getElementById('row-bg-query');
+            if (state.category === 'Custom') {
+                elRowBgQuery.classList.remove('hidden');
+            } else {
+                elRowBgQuery.classList.add('hidden');
+            }
         }
 
         function updateSyncURL(isInitial = false) {
@@ -232,7 +266,9 @@
             params.set('s', state.seconds ? '1' : '0');
             params.set('font', state.font);
             params.set('bg', state.bg);
+            params.set('cat', state.category);
             if (state.name) params.set('n', state.name);
+            if (state.apiKey) params.set('key', state.apiKey);
             
             const newSearch = `?${params.toString()}`;
             syncInput.value = window.location.origin + window.location.pathname + newSearch;
@@ -267,72 +303,76 @@
         }
 
         /**
-         * UPDATED: fetchBackground 
-         * Unsplash Source is officially deprecated. We now use a public search scrape 
-         * via proxy to get actual Unsplash image URLs based on keywords.
+         * fetchBackground 
+         * Uses official Unsplash API if key is provided.
          */
         async function fetchBackground() {
             elBgLoader.style.display = 'block';
-            const keywords = state.bg || 'nature,landscape';
+            
+            if (!state.apiKey) {
+                console.warn("Unsplash API Key missing. Using fallback.");
+                useFallbackBackground();
+                return;
+            }
+
+            let keywords = state.bg || 'nature,landscape';
+            if (state.category && state.category !== 'Custom') {
+                keywords = state.category.toLowerCase();
+            }
+            
             const query = encodeURIComponent(keywords.replace(/,/g, ' '));
+            const apiUrl = `https://api.unsplash.com/photos/random?query=${query}&client_id=${state.apiKey}`;
             
             try {
-                // We use Unsplash's public "napi" search which returns JSON. 
-                // We proxy it to avoid CORS issues.
-                const apiUrl = `https://unsplash.com/napi/search/photos?query=${query}&per_page=20&orientation=landscape`;
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error(`API error: ${response.status}`);
+                const photo = await response.json();
                 
-                const response = await fetch(proxyUrl);
-                const data = await response.json();
-                const searchData = JSON.parse(data.contents);
+                const imageUrl = `${photo.urls.regular}&w=${window.innerWidth}&q=80&auto=format`;
                 
-                if (searchData.results && searchData.results.length > 0) {
-                    // Pick a random photo from the first page of results
-                    const randomIndex = Math.floor(Math.random() * searchData.results.length);
-                    const photo = searchData.results[randomIndex];
-                    
-                    // Use a high-quality version (regular)
-                    const imageUrl = `${photo.urls.regular}&w=${window.innerWidth}&q=80&auto=format`;
-                    
-                    const img = new Image();
-                    img.src = imageUrl;
-                    img.onload = () => {
-                        elBg.style.backgroundImage = `url('${imageUrl}')`;
-                        elBg.style.opacity = 1;
-                        elBgLoader.style.display = 'none';
-                        elPhotographer.textContent = `Unsplash: ${photo.user.name} (@${photo.user.username})`;
-                    };
-                } else {
-                    throw new Error("No results found");
-                }
+                const img = new Image();
+                img.src = imageUrl;
+                img.onload = () => {
+                    elBg.style.backgroundImage = `url('${imageUrl}')`;
+                    elBg.style.opacity = 1;
+                    elBgLoader.style.display = 'none';
+                    elPhotographer.innerHTML = `Photo by <a href="${photo.user.links.html}?utm_source=batliss&utm_medium=referral" target="_blank" class="underline">${photo.user.name}</a> on <a href="https://unsplash.com/?utm_source=batliss&utm_medium=referral" target="_blank" class="underline">Unsplash</a>`;
+                };
             } catch (err) {
-                console.error("Unsplash Search failed:", err);
-                // Hard-coded Unsplash fallback if everything fails
-                const fallbackUrl = "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1920&q=80";
-                elBg.style.backgroundImage = `url('${fallbackUrl}')`;
-                elBg.style.opacity = 1;
-                elBgLoader.style.display = 'none';
-                elPhotographer.textContent = "Unsplash (Fallback)";
+                console.error("Unsplash API failed:", err);
+                useFallbackBackground();
             }
         }
 
-        async function fetchQuote() {
+        function useFallbackBackground() {
+            const fallbackUrl = "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1920&q=80";
+            elBg.style.backgroundImage = `url('${fallbackUrl}')`;
+            elBg.style.opacity = 1;
+            elBgLoader.style.display = 'none';
+            elPhotographer.textContent = "Unsplash (Fallback)";
+        }
+
+        let quotes = [];
+
+        async function loadQuotes() {
             try {
-                const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://api.quotable.io/random?tags=inspirational'));
-                const json = await res.json();
-                const data = JSON.parse(json.contents);
-                
-                elQuoteText.textContent = `"${data.content}"`;
-                elQuoteAuthor.textContent = `— ${data.author}`;
-            } catch (e) {
-                const q = [
-                    { c: "Act as if what you do makes a difference. It does.", a: "William James" },
-                    { c: "Believe you can and you're halfway there.", a: "Theodore Roosevelt" },
-                    { c: "The mind is everything. What you think you become.", a: "Buddha" }
-                ][Math.floor(Math.random() * 3)];
-                elQuoteText.textContent = `"${q.c}"`;
-                elQuoteAuthor.textContent = `— ${q.a}`;
+                const response = await fetch('quotes.json');
+                quotes = await response.json();
+                displayRandomQuote();
+            } catch (error) {
+                console.error("Failed to load quotes:", error);
+                // Fallback quote
+                elQuoteText.textContent = '"Act as if what you do makes a difference. It does."';
+                elQuoteAuthor.textContent = "— William James";
             }
+        }
+
+        function displayRandomQuote() {
+            if (quotes.length === 0) return;
+            const randomIndex = Math.floor(Math.random() * quotes.length);
+            const quote = quotes[randomIndex];
+            elQuoteText.textContent = `"${quote.c}"`;
+            elQuoteAuthor.textContent = `— ${quote.a}${quote.s ? ', ' + quote.s : ''}`;
         }
 
         // Interaction
@@ -362,7 +402,16 @@
                     document.body.style.fontFamily = val + ", sans-serif";
                 }
                 if (id === 'set-bg-query') state.bg = val;
+                if (id === 'set-category') {
+                    state.category = val;
+                    updateKeywordVisibility();
+                    fetchBackground();
+                }
                 if (id === 'set-user-name') state.name = val;
+                if (id === 'set-api-key') {
+                    state.apiKey = val;
+                    fetchBackground();
+                }
 
                 updateSyncURL();
                 updateClock();
@@ -381,7 +430,7 @@
             loadSettings();
             updateClock();
             fetchBackground();
-            fetchQuote();
+            loadQuotes();
             setInterval(updateClock, 1000);
         };
     </script>
