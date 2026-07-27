@@ -57,7 +57,9 @@
             transition: opacity 0.4s ease;
         }
 
-        body:hover .hidden-ui {
+        body:hover .hidden-ui,
+        body.ui-visible .hidden-ui,
+        .hidden-ui:focus-within {
             opacity: 1;
             pointer-events: auto;
         }
@@ -609,6 +611,12 @@
             btn.textContent = 'Copied!';
             setTimeout(() => btn.textContent = 'Copy', 2000);
         };
+
+        // Tap background to toggle UI visibility on touch devices
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#settings-panel') || e.target.closest('.hidden-ui')) return;
+            document.body.classList.toggle('ui-visible');
+        });
 
         window.onload = () => {
             loadSettings();
