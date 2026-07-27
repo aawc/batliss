@@ -500,11 +500,23 @@
         }
 
         function useFallbackBackground() {
-            const fallbackUrl = "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1920&q=80";
-            elBg.style.backgroundImage = `url('${fallbackUrl}')`;
-            elBg.style.opacity = 1;
-            elBgLoader.style.display = 'none';
-            elPhotographer.textContent = "Unsplash (Fallback)";
+            const randomSeed = Math.floor(Math.random() * 1000);
+            const fallbackUrl = `https://picsum.photos/seed/${randomSeed}/1920/1080`;
+            const img = new Image();
+            img.src = fallbackUrl;
+            img.onload = () => {
+                elBg.style.backgroundImage = `url('${fallbackUrl}')`;
+                elBg.style.opacity = 1;
+                elBgLoader.style.display = 'none';
+                elPhotographer.textContent = "Picsum Photos (Keyless Fallback)";
+            };
+            img.onerror = () => {
+                const staticUrl = "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1920&q=80";
+                elBg.style.backgroundImage = `url('${staticUrl}')`;
+                elBg.style.opacity = 1;
+                elBgLoader.style.display = 'none';
+                elPhotographer.textContent = "Unsplash (Static Fallback)";
+            };
         }
 
         let quotes = [];
