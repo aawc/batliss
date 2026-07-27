@@ -493,7 +493,23 @@
                     elBg.style.backgroundImage = `url('${imageUrl}')`;
                     elBg.style.opacity = 1;
                     elBgLoader.style.display = 'none';
-                    elPhotographer.innerHTML = `Photo by <a href="${photo.user.links.html}?utm_source=batliss&utm_medium=referral" target="_blank" class="underline">${photo.user.name}</a> on <a href="https://unsplash.com/?utm_source=batliss&utm_medium=referral" target="_blank" class="underline">Unsplash</a>`;
+
+                    elPhotographer.replaceChildren();
+                    elPhotographer.appendChild(document.createTextNode('Photo by '));
+                    const userLink = document.createElement('a');
+                    userLink.href = `${photo.user.links.html}?utm_source=batliss&utm_medium=referral`;
+                    userLink.target = '_blank';
+                    userLink.className = 'underline';
+                    userLink.textContent = photo.user.name;
+                    elPhotographer.appendChild(userLink);
+
+                    elPhotographer.appendChild(document.createTextNode(' on '));
+                    const unsplashLink = document.createElement('a');
+                    unsplashLink.href = 'https://unsplash.com/?utm_source=batliss&utm_medium=referral';
+                    unsplashLink.target = '_blank';
+                    unsplashLink.className = 'underline';
+                    unsplashLink.textContent = 'Unsplash';
+                    elPhotographer.appendChild(unsplashLink);
                 };
             } catch (err) {
                 console.error("Unsplash API failed:", err);
@@ -604,11 +620,22 @@
             };
         });
 
-        document.getElementById('copy-url').onclick = () => {
-            syncInput.select();
-            document.execCommand('copy');
+        document.getElementById('copy-url').onclick = async () => {
             const btn = document.getElementById('copy-url');
-            btn.textContent = 'Copied!';
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(syncInput.value);
+                } else {
+                    syncInput.select();
+                    document.execCommand('copy');
+                }
+                btn.textContent = 'Copied!';
+            } catch (err) {
+                console.warn('Clipboard copy failed:', err);
+                syncInput.select();
+                document.execCommand('copy');
+                btn.textContent = 'Copied!';
+            }
             setTimeout(() => btn.textContent = 'Copy', 2000);
         };
 
