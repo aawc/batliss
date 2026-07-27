@@ -110,7 +110,8 @@
 
     <main class="flex flex-col items-center justify-center h-full text-center px-4 select-none">
         <div id="clock" class="text-8xl md:text-9xl font-semibold mb-2">00:00</div>
-        <div id="greeting" class="text-2xl md:text-3xl font-light opacity-90 mb-8">Good morning.</div>
+        <div id="greeting" class="text-2xl md:text-3xl font-light opacity-90 mb-4">Good morning.</div>
+        <div id="custom-message" class="text-lg md:text-xl font-light opacity-80 mb-8 hidden"></div>
 
         <div id="quote-container" class="max-w-2xl transition-opacity duration-1000">
             <p id="quote-text" class="text-xl md:text-2xl font-light mb-2 italic">"Loading inspiration..."</p>
@@ -187,7 +188,10 @@
                     <input type="text" id="set-user-name" placeholder="Friend">
                 </div>
 
-
+                <div class="setting-row">
+                    <label class="text-sm opacity-80">Custom Message</label>
+                    <input type="text" id="set-custom-message" placeholder="Make today awesome">
+                </div>
 
                 <div class="setting-row">
                     <label class="text-sm opacity-80">Unsplash Access Key</label>
@@ -215,6 +219,7 @@
             category: 'Featured',
             bg: 'nature,landscape',
             name: '',
+            message: '',
             apiKey: '',
             seed: Math.floor(Math.random() * 1000)
         };
@@ -222,6 +227,7 @@
         // DOM Elements
         const elClock = document.getElementById('clock');
         const elGreeting = document.getElementById('greeting');
+        const elCustomMessage = document.getElementById('custom-message');
         const elQuoteText = document.getElementById('quote-text');
         const elQuoteAuthor = document.getElementById('quote-author');
         const elBg = document.getElementById('bg-overlay');
@@ -233,7 +239,7 @@
         function loadSettings() {
             const params = new URLSearchParams(window.location.search);
 
-            const hasParams = params.has('f') || params.has('s') || params.has('font') || params.has('bg') || params.has('cat') || params.has('n') || params.has('key');
+            const hasParams = params.has('f') || params.has('s') || params.has('font') || params.has('bg') || params.has('cat') || params.has('n') || params.has('m') || params.has('key');
 
             if (hasParams) {
                 if (params.has('f')) state.format = params.get('f');
@@ -242,6 +248,7 @@
                 if (params.has('bg')) state.bg = params.get('bg');
                 if (params.has('cat')) state.category = params.get('cat');
                 if (params.has('n')) state.name = params.get('n');
+                if (params.has('m')) state.message = params.get('m');
                 if (params.has('key')) state.apiKey = params.get('key');
 
                 localStorage.setItem('batliss-settings', JSON.stringify(state));
@@ -260,10 +267,12 @@
             document.getElementById('set-font').value = state.font;
             document.getElementById('set-category').value = state.category;
             document.getElementById('set-bg-query').value = state.bg;
-            document.getElementById('set-user-name').value = state.name;
-            document.getElementById('set-api-key').value = state.apiKey;
+            document.getElementById('set-user-name').value = state.name || '';
+            document.getElementById('set-custom-message').value = state.message || '';
+            document.getElementById('set-api-key').value = state.apiKey || '';
 
             updateKeywordVisibility();
+            updateCustomMessage();
             updateSyncURL(true);
         }
 
@@ -276,6 +285,16 @@
             }
         }
 
+        function updateCustomMessage() {
+            if (state.message && state.message.trim() !== '') {
+                elCustomMessage.textContent = state.message;
+                elCustomMessage.classList.remove('hidden');
+            } else {
+                elCustomMessage.textContent = '';
+                elCustomMessage.classList.add('hidden');
+            }
+        }
+
         function updateSyncURL(isInitial = false) {
             const params = new URLSearchParams();
             params.set('f', state.format);
@@ -284,6 +303,7 @@
             params.set('bg', state.bg);
             params.set('cat', state.category);
             if (state.name) params.set('n', state.name);
+            if (state.message) params.set('m', state.message);
             if (state.apiKey) params.set('key', state.apiKey);
 
             const newSearch = `?${params.toString()}`;
@@ -424,6 +444,10 @@
                     fetchBackground();
                 }
                 if (id === 'set-user-name') state.name = val;
+                if (id === 'set-custom-message') {
+                    state.message = val;
+                    updateCustomMessage();
+                }
                 if (id === 'set-api-key') {
                     state.apiKey = val;
                     fetchBackground();

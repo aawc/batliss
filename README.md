@@ -23,7 +23,7 @@ You can configure the page by adding query parameters to the URL:
 *   `font`: Font family (e.g., `Inter`, `Playfair Display`, `JetBrains Mono`).
 *   `bg`: Background image search terms (comma-separated).
 *   `n`: Your name (used in the greeting).
-*   `m`: Custom message (if supported).
+*   `m`: Custom message displayed below the greeting.
 *   `cat`: Predefined category for background images.
 
 Use the "Copy" button in the settings panel to generate a permalink with your current settings.
