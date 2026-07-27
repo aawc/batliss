@@ -1,4 +1,4 @@
-const CACHE_NAME = 'batliss-cache-v1';
+const CACHE_NAME = 'batliss-cache-v2';
 const urlsToCache = [
   './',
   './index.html',
@@ -7,27 +7,38 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      }
-    )
-  );
+  const url = new URL(event.request.url);
+
+  // Stale-While-Revalidate for local app shell assets
+  if (url.origin === location.origin) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(cache => {
+        return cache.match(event.request).then(cachedResponse => {
+          const fetchPromise = fetch(event.request).then(networkResponse => {
+            if (networkResponse && networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          }).catch(() => {});
+          return cachedResponse || fetchPromise;
+        });
+      })
+    );
+    return;
+  }
+
+  // Pass third-party requests directly to network
+  event.respondWith(fetch(event.request));
 });
 
 self.addEventListener('activate', event => {
@@ -40,7 +51,7 @@ self.addEventListener('activate', event => {
             return caches.delete(cacheName);
           }
         })
-      );
+      ).then(() => self.clients.claim());
     })
   );
 });
