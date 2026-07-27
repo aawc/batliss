@@ -206,7 +206,7 @@
 
                 <div class="setting-row">
                     <label class="text-sm opacity-80">Weather Location</label>
-                    <input type="text" id="set-weather-loc" placeholder="e.g. Tokyo, London">
+                    <input type="text" id="set-weather-loc" placeholder="Auto (IP) or e.g. Tokyo">
                 </div>
 
                 <div class="setting-row">
@@ -343,39 +343,55 @@
             const elTemp = document.getElementById('weather-temp');
             const elDetails = document.getElementById('weather-details');
 
-            if (!state.loc || state.loc.trim() === '') {
-                widget.classList.add('hidden');
-                return;
-            }
-
             try {
                 let lat, lon, locName;
-                const coordMatch = state.loc.match(/^([-\d.]+),\s*([-\d.]+)$/);
+                const locQuery = state.loc ? state.loc.trim() : '';
 
-                if (coordMatch) {
-                    lat = parseFloat(coordMatch[1]);
-                    lon = parseFloat(coordMatch[2]);
-                    locName = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+                if (locQuery !== '') {
+                    const coordMatch = locQuery.match(/^([-\d.]+),\s*([-\d.]+)$/);
+                    if (coordMatch) {
+                        lat = parseFloat(coordMatch[1]);
+                        lon = parseFloat(coordMatch[2]);
+                        locName = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+                    } else {
+                        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(locQuery)}&count=1&language=en&format=json`);
+                        if (!geoRes.ok) throw new Error('Geocoding failed');
+                        const geoData = await geoRes.json();
+                        if (!geoData.results || geoData.results.length === 0) throw new Error('Location not found');
+                        const result = geoData.results[0];
+                        lat = result.latitude;
+                        lon = result.longitude;
+                        locName = result.name;
+                    }
                 } else {
-                    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(state.loc)}&count=1&language=en&format=json`);
-                    if (!geoRes.ok) throw new Error('Geocoding failed');
-                    const geoData = await geoRes.json();
-                    if (!geoData.results || geoData.results.length === 0) throw new Error('Location not found');
-                    const result = geoData.results[0];
-                    lat = result.latitude;
-                    lon = result.longitude;
-                    locName = result.name;
+                    // Infer location from IP address without triggering browser permission prompt
+                    const ipRes = await fetch('https://ipapi.co/json/');
+                    if (!ipRes.ok) throw new Error('IP geolocation failed');
+                    const ipData = await ipRes.json();
+                    if (!ipData.latitude || !ipData.longitude) throw new Error('IP location missing');
+                    lat = ipData.latitude;
+                    lon = ipData.longitude;
+                    locName = ipData.city || 'Local';
                 }
 
-                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relative_humidity_2m`);
+                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max&timezone=auto`);
                 if (!weatherRes.ok) throw new Error('Weather API error');
                 const weatherData = await weatherRes.json();
 
                 const curr = weatherData.current_weather;
+                const daily = weatherData.daily || {};
+
                 let rawTemp = curr.temperature;
+                let maxTemp = (daily.temperature_2m_max && daily.temperature_2m_max.length) ? daily.temperature_2m_max[0] : null;
+                let minTemp = (daily.temperature_2m_min && daily.temperature_2m_min.length) ? daily.temperature_2m_min[0] : null;
+                let precip = (daily.precipitation_probability_max && daily.precipitation_probability_max.length) ? daily.precipitation_probability_max[0] : null;
+                let uv = (daily.uv_index_max && daily.uv_index_max.length) ? daily.uv_index_max[0] : null;
+
                 let unitSymbol = '°C';
                 if (state.units === 'f') {
                     rawTemp = (rawTemp * 9/5) + 32;
+                    if (maxTemp !== null) maxTemp = (maxTemp * 9/5) + 32;
+                    if (minTemp !== null) minTemp = (minTemp * 9/5) + 32;
                     unitSymbol = '°F';
                 }
 
@@ -384,10 +400,21 @@
                 const icon = getWeatherIcon(code);
 
                 elIcon.textContent = icon;
-                elTemp.textContent = `${locName} ${tempDisplay}`;
 
-                if (state.wMode === 'detailed') {
-                    elDetails.textContent = `Wind: ${curr.windspeed} km/h`;
+                let highLowText = '';
+                if (maxTemp !== null && minTemp !== null) {
+                    highLowText = ` (H:${Math.round(maxTemp)}° L:${Math.round(minTemp)}°)`;
+                }
+
+                elTemp.textContent = `${locName} ${tempDisplay}${highLowText}`;
+
+                let detailsParts = [];
+                if (precip !== null && precip !== undefined) detailsParts.push(`🌧️ ${precip}%`);
+                if (uv !== null && uv !== undefined) detailsParts.push(`UV ${Math.round(uv)}`);
+                if (curr.windspeed !== undefined) detailsParts.push(`💨 ${Math.round(curr.windspeed)} km/h`);
+
+                if (detailsParts.length > 0) {
+                    elDetails.textContent = detailsParts.join(' · ');
                     elDetails.classList.remove('hidden');
                 } else {
                     elDetails.classList.add('hidden');
