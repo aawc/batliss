@@ -6,6 +6,7 @@ A beautiful, standalone new tab page for GitHub Pages, inspired by [Tabliss](htt
 
 *   **Beautiful Backgrounds**: Pulled from Unsplash based on your preferences.
 *   **Clock**: Displays current time in your local timezone.
+*   **Location Weather**: Displays current weather for a user-specified city or location using keyless Open-Meteo API.
 *   **Custom Message**: Set a personal message to display on the page.
 *   **No Cookies**: All settings are stored in the URL, allowing for easy sharing and bookmarking via permalinks.
 *   **Privacy Focused**: No tracking, no cookies.
@@ -25,5 +26,8 @@ You can configure the page by adding query parameters to the URL:
 *   `n`: Your name (used in the greeting).
 *   `m`: Custom message displayed below the greeting.
 *   `cat`: Predefined category for background images.
+*   `loc`: User-specified location for weather (e.g., `loc=Tokyo` or `loc=London,UK`).
+*   `units`: Temperature scale (`c` for Celsius, `f` for Fahrenheit).
+*   `w_mode`: Weather display mode (`compact` or `detailed`).
 
 Use the "Copy" button in the settings panel to generate a permalink with your current settings.
