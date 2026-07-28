@@ -110,23 +110,26 @@
     <div id="bg-overlay"></div>
     <div id="scrim"></div>
 
-    <!-- Top-Left Wiktionary Word of the Day Widget -->
-    <div id="wotd-widget" class="hidden-ui fixed top-6 left-6 glass p-4 rounded-2xl flex flex-col gap-1 text-sm hidden z-10 max-w-xs">
-        <div class="flex items-center justify-between text-xs opacity-70 mb-1">
-            <span class="font-medium tracking-wide uppercase text-[10px]">Word of the Day</span>
-            <a id="wotd-link" href="https://en.wiktionary.org/wiki/Wiktionary:Word_of_the_day" target="_blank" rel="noopener" class="hover:underline opacity-80">Wiktionary ↗</a>
+    <!-- Top Widgets Bar (Responsive for Mobile and Desktop) -->
+    <div class="fixed top-4 left-4 right-4 md:top-6 md:left-6 md:right-6 flex flex-col md:flex-row justify-between items-stretch md:items-start gap-3 z-10 pointer-events-none">
+        <!-- Wiktionary Word of the Day Widget -->
+        <div id="wotd-widget" class="hidden-ui pointer-events-auto glass p-3 md:p-4 rounded-2xl flex flex-col gap-1 text-sm hidden w-full md:w-auto md:max-w-xs">
+            <div class="flex items-center justify-between text-xs opacity-70 mb-1">
+                <span class="font-medium tracking-wide uppercase text-[10px]">Word of the Day</span>
+                <a id="wotd-link" href="https://en.wiktionary.org/wiki/Wiktionary:Word_of_the_day" target="_blank" rel="noopener" class="hover:underline opacity-80">Wiktionary ↗</a>
+            </div>
+            <div id="wotd-term" class="font-semibold text-base capitalize">--</div>
+            <div id="wotd-def" class="text-xs opacity-80 line-clamp-2 md:line-clamp-3 leading-snug">--</div>
         </div>
-        <div id="wotd-term" class="font-semibold text-base capitalize">--</div>
-        <div id="wotd-def" class="text-xs opacity-80 line-clamp-3 leading-snug">--</div>
+
+        <!-- Weather Widget for Up to 3 Locations -->
+        <div id="weather-widget" class="hidden-ui pointer-events-auto glass p-3 md:p-4 rounded-2xl flex flex-col gap-2 md:gap-3 text-sm hidden w-full md:w-auto md:max-w-sm max-h-[35vh] md:max-h-[80vh] overflow-y-auto">
+            <div id="weather-locations-container" class="flex flex-col gap-2 md:gap-3"></div>
+        </div>
     </div>
 
-    <!-- Top-Right Weather Widget for Up to 3 Locations -->
-    <div id="weather-widget" class="hidden-ui fixed top-6 right-6 glass p-4 rounded-2xl flex flex-col gap-3 text-sm hidden z-10 max-w-sm max-h-[80vh] overflow-y-auto">
-        <div id="weather-locations-container" class="flex flex-col gap-3"></div>
-    </div>
-
-    <main class="flex flex-col items-center justify-center h-full text-center px-4 select-none">
-        <div id="clock" class="text-8xl md:text-9xl font-semibold mb-2">00:00</div>
+    <main class="flex flex-col items-center justify-center min-h-full text-center px-4 select-none pt-52 pb-24 md:pt-0 md:pb-0">
+        <div id="clock" class="text-6xl sm:text-7xl md:text-9xl font-semibold mb-2">00:00</div>
         <div id="greeting" class="text-2xl md:text-3xl font-light opacity-90 mb-4">Good morning.</div>
         <div id="custom-message" class="text-lg md:text-xl font-light opacity-80 mb-8 hidden"></div>
 

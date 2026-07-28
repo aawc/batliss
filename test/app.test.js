@@ -431,3 +431,14 @@ describe('Service Worker File Integrity', () => {
         assert.match(swContent, /'\.\/manifest\.json'/);
     });
 });
+
+describe('Mobile Responsive Layout Integrity', () => {
+    test('validates responsive layout classes in index.html for widgets and clock', () => {
+        const indexPath = path.join(process.cwd(), 'index.html');
+        assert.equal(fs.existsSync(indexPath), true);
+
+        const htmlContent = fs.readFileSync(indexPath, 'utf8');
+        assert.match(htmlContent, /flex flex-col md:flex-row justify-between/);
+        assert.match(htmlContent, /text-6xl sm:text-7xl md:text-9xl/);
+    });
+});
