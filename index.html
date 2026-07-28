@@ -110,6 +110,16 @@
     <div id="bg-overlay"></div>
     <div id="scrim"></div>
 
+    <!-- Top-Left Wiktionary Word of the Day Widget -->
+    <div id="wotd-widget" class="hidden-ui fixed top-6 left-6 glass p-4 rounded-2xl flex flex-col gap-1 text-sm hidden z-10 max-w-xs">
+        <div class="flex items-center justify-between text-xs opacity-70 mb-1">
+            <span class="font-medium tracking-wide uppercase text-[10px]">Word of the Day</span>
+            <a id="wotd-link" href="https://en.wiktionary.org/wiki/Wiktionary:Word_of_the_day" target="_blank" rel="noopener" class="hover:underline opacity-80">Wiktionary ↗</a>
+        </div>
+        <div id="wotd-term" class="font-semibold text-base capitalize">--</div>
+        <div id="wotd-def" class="text-xs opacity-80 line-clamp-3 leading-snug">--</div>
+    </div>
+
     <!-- Top-Right Weather Widget for Up to 3 Locations -->
     <div id="weather-widget" class="hidden-ui fixed top-6 right-6 glass p-4 rounded-2xl flex flex-col gap-3 text-sm hidden z-10 max-w-sm max-h-[80vh] overflow-y-auto">
         <div id="weather-locations-container" class="flex flex-col gap-3"></div>
@@ -227,6 +237,11 @@
                 </div>
 
                 <div class="setting-row">
+                    <label class="text-sm opacity-80">Word of the Day</label>
+                    <input type="checkbox" id="set-show-wotd" checked>
+                </div>
+
+                <div class="setting-row">
                     <label class="text-sm opacity-80">Unsplash Access Key</label>
                     <input type="password" id="set-api-key" placeholder="Paste Access Key here">
                 </div>
@@ -258,6 +273,7 @@
             loc3: '',
             units: 'c',
             wMode: 'compact',
+            wotd: true,
             apiKey: '',
             seed: Math.floor(Math.random() * 1000)
         };
@@ -277,7 +293,7 @@
         function loadSettings() {
             const params = new URLSearchParams(window.location.search);
 
-            const hasParams = params.has('f') || params.has('s') || params.has('font') || params.has('bg') || params.has('cat') || params.has('n') || params.has('m') || params.has('loc') || params.has('loc2') || params.has('loc3') || params.has('units') || params.has('wm') || params.has('w_mode') || params.has('key');
+            const hasParams = params.has('f') || params.has('s') || params.has('font') || params.has('bg') || params.has('cat') || params.has('n') || params.has('m') || params.has('loc') || params.has('loc2') || params.has('loc3') || params.has('units') || params.has('wm') || params.has('w_mode') || params.has('wotd') || params.has('key');
 
             if (hasParams) {
                 if (params.has('f')) state.format = params.get('f');
@@ -293,6 +309,7 @@
                 if (params.has('units')) state.units = params.get('units');
                 if (params.has('wm')) state.wMode = params.get('wm');
                 else if (params.has('w_mode')) state.wMode = params.get('w_mode');
+                if (params.has('wotd')) state.wotd = params.get('wotd') === '1';
                 if (params.has('key')) state.apiKey = params.get('key');
 
                 localStorage.setItem('batliss-settings', JSON.stringify(state));
@@ -317,12 +334,14 @@
             document.getElementById('set-weather-loc3').value = state.loc3 || '';
             document.getElementById('set-weather-units').value = state.units || 'c';
             document.getElementById('set-weather-mode').value = state.wMode || 'compact';
+            document.getElementById('set-show-wotd').checked = state.wotd !== false;
             document.getElementById('set-api-key').value = state.apiKey || '';
 
             updateKeywordVisibility();
             updateCustomMessage();
             updateSyncURL(true);
             fetchWeather();
+            fetchWotd();
         }
 
         function updateKeywordVisibility() {
@@ -480,6 +499,65 @@
             return '🌡️';
         }
 
+        async function fetchWotd() {
+            const widget = document.getElementById('wotd-widget');
+            const termEl = document.getElementById('wotd-term');
+            const defEl = document.getElementById('wotd-def');
+            const linkEl = document.getElementById('wotd-link');
+
+            if (!state.wotd) {
+                widget.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const url = 'https://en.wiktionary.org/w/api.php?action=expandtemplates&text={{Word+of+the+day}}&format=json&prop=wikitext&origin=*';
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Wiktionary API error');
+                const data = await res.json();
+                if (!data.expandtemplates || !data.expandtemplates.wikitext) throw new Error('Invalid template data');
+
+                const wikitext = data.expandtemplates.wikitext;
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(wikitext, 'text/html');
+
+                const titleEl = doc.getElementById('WOTD-rss-title');
+                const word = titleEl ? titleEl.textContent.trim() : '';
+
+                const descEl = doc.getElementById('WOTD-rss-description');
+                let definition = '';
+                if (descEl) {
+                    const firstLi = descEl.querySelector('li');
+                    let rawText = firstLi ? firstLi.textContent : descEl.textContent;
+
+                    const parts = rawText.split('#').map(p => p.trim()).filter(p => p.length > 0);
+                    let firstDef = parts.length > 0 ? parts[0] : rawText;
+
+                    definition = firstDef
+                        .replace(/\[\[Category:[^\]]+\]\]/gi, '')
+                        .replace(/\[\[File:[^\]]+\]\]/gi, '')
+                        .replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, '$1')
+                        .replace(/<[^>]+>/g, ' ')
+                        .replace(/\(\s*\)/g, '')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                }
+
+                if (!word || !definition) throw new Error('Failed to parse WOTD content');
+
+                termEl.textContent = word;
+                defEl.textContent = definition;
+                linkEl.href = `https://en.wiktionary.org/wiki/${encodeURIComponent(word)}`;
+                widget.classList.remove('hidden');
+            } catch (err) {
+                console.warn('Wiktionary WOTD fetch error:', err.message);
+                termEl.textContent = 'serendipity';
+                defEl.textContent = 'The occurrence and development of events by chance in a happy or beneficial way.';
+                linkEl.href = 'https://en.wiktionary.org/wiki/serendipity';
+                widget.classList.remove('hidden');
+            }
+        }
+
         function updateSyncURL(isInitial = false) {
             const params = new URLSearchParams();
             params.set('f', state.format);
@@ -494,6 +572,7 @@
             if (state.loc3) params.set('loc3', state.loc3);
             if (state.units && state.units !== 'c') params.set('units', state.units);
             if (state.wMode && state.wMode !== 'compact') params.set('wm', state.wMode);
+            if (state.wotd === false) params.set('wotd', '0');
             if (state.apiKey) params.set('key', state.apiKey);
 
             const newSearch = `?${params.toString()}`;
@@ -681,6 +760,10 @@
                 if (id === 'set-weather-mode') {
                     state.wMode = val;
                     fetchWeather();
+                }
+                if (id === 'set-show-wotd') {
+                    state.wotd = val;
+                    fetchWotd();
                 }
                 if (id === 'set-api-key') {
                     state.apiKey = val;

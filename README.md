@@ -7,6 +7,7 @@ A beautiful, standalone new tab page for GitHub Pages, inspired by [Tabliss](htt
 *   **Beautiful Backgrounds**: Pulled from Unsplash based on your preferences.
 *   **Clock**: Displays current time in your local timezone.
 *   **Location Weather**: Displays current weather, daily summary (High/Low temps, precipitation chance, UV index, wind speed), and hourly forecasts for up to 3 locations (primary location is always auto-inferred via IP).
+*   **Wiktionary Word of the Day**: Displays today's featured word, definition, and direct Wiktionary permalink in a glassmorphic top-left badge.
 *   **Custom Message**: Set a personal message to display on the page.
 *   **No Cookies**: All settings are stored in the URL, allowing for easy sharing and bookmarking via permalinks.
 *   **Privacy Focused**: No tracking, no cookies.
@@ -31,6 +32,7 @@ You can configure the page by adding query parameters to the URL:
 *   `loc3`: Optional third location (e.g., `loc3=NewYork`).
 *   `units`: Temperature scale (`c` for Celsius, `f` for Fahrenheit).
 *   `wm`: Weather display mode (`compact` for daily summary, `detailed` for daily summary + hourly forecast strip).
+*   `wotd`: Toggle Word of the Day widget (`1` for show, `0` for hide).
 
 Use the "Copy" button in the settings panel to generate a permalink with your current settings.
 
