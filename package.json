@@ -1,0 +1,12 @@
+{
+  "name": "batliss",
+  "version": "1.0.0",
+  "description": "A beautiful, standalone new tab page inspired by Tabliss.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/app.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}

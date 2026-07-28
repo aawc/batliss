@@ -33,3 +33,13 @@ You can configure the page by adding query parameters to the URL:
 *   `wm`: Weather display mode (`compact` for daily summary, `detailed` for daily summary + hourly forecast strip).
 
 Use the "Copy" button in the settings panel to generate a permalink with your current settings.
+
+## Testing
+
+Run unit tests locally via Node.js native test runner:
+
+```bash
+node --test test/app.test.js
+```
+
+A Git pre-commit hook is configured (`.git/hooks/pre-commit`) to automatically run all unit tests before every commit.
