@@ -52,16 +52,14 @@
         }
 
         .hidden-ui {
-            opacity: 0;
-            pointer-events: none;
+            opacity: 1;
+            pointer-events: auto;
             transition: opacity 0.4s ease;
         }
 
-        body:hover .hidden-ui,
-        body.ui-visible .hidden-ui,
-        .hidden-ui:focus-within {
-            opacity: 1;
-            pointer-events: auto;
+        body.ui-hidden .hidden-ui {
+            opacity: 0 !important;
+            pointer-events: none !important;
         }
 
         .setting-row {
@@ -798,10 +796,12 @@
             setTimeout(() => btn.textContent = 'Copy', 2000);
         };
 
-        // Tap background to toggle UI visibility on touch devices
+        // Click or tap anywhere outside widgets to toggle UI visibility
         document.addEventListener('click', (e) => {
-            if (e.target.closest('#settings-panel') || e.target.closest('.hidden-ui')) return;
-            document.body.classList.toggle('ui-visible');
+            if (e.target.closest('#settings-panel') || e.target.closest('#wotd-widget') || e.target.closest('#weather-widget') || e.target.closest('button') || e.target.closest('a') || e.target.closest('input') || e.target.closest('select')) {
+                return;
+            }
+            document.body.classList.toggle('ui-hidden');
         });
 
         window.onload = () => {

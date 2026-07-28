@@ -441,4 +441,12 @@ describe('Mobile Responsive Layout Integrity', () => {
         assert.match(htmlContent, /flex flex-col md:flex-row justify-between/);
         assert.match(htmlContent, /text-6xl sm:text-7xl md:text-9xl/);
     });
+
+    test('validates UI visibility toggle rules and click listener in index.html', () => {
+        const indexPath = path.join(process.cwd(), 'index.html');
+        const htmlContent = fs.readFileSync(indexPath, 'utf8');
+        assert.match(htmlContent, /\.hidden-ui\s*\{\s*opacity:\s*1/);
+        assert.match(htmlContent, /body\.ui-hidden \.hidden-ui/);
+        assert.match(htmlContent, /document\.body\.classList\.toggle\('ui-hidden'\)/);
+    });
 });
