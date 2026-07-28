@@ -9,7 +9,7 @@ Create a standalone webpage on GitHub Pages that works very similar to https://w
 5.  **No Cookies / Persistence**: Do not use cookies or local storage for settings. Use query parameters in the URL for all settings. Generate a permalink that the user can copy to save their setup.
 6.  **UI**: The UI should be minimal and elegant. Settings should be accessible but hidden by default (e.g., on hover, touch tap, or via a small icon). Use a glassmorphism effect for UI elements.
 7.  **Fallbacks**: Provide fallback images (dynamic Picsum Photos or static Unsplash fallback) and quotes if external API calls fail.
-8.  **Location Weather Widget**: Allow the user to specify a location (via URL parameter `loc`, `units`, `w_mode`, and Settings UI) to display current weather forecasts and condition icons for that specified location.
+8.  **Location Weather Widget**: Always infer primary location via IP geolocation without prompting the user in Settings. Allow the user to specify up to two optional additional locations (`loc2`, `loc3`). Support `compact` mode (daily summary with High/Low temps, precip %, UV, wind) and `detailed` mode (daily summary + hourly forecast strip), controlled by URL parameter `wm`.
 
 Tech Stack:
 *   Single `index.html` file.

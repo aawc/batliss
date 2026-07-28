@@ -6,7 +6,7 @@ A beautiful, standalone new tab page for GitHub Pages, inspired by [Tabliss](htt
 
 *   **Beautiful Backgrounds**: Pulled from Unsplash based on your preferences.
 *   **Clock**: Displays current time in your local timezone.
-*   **Location Weather**: Displays current weather and daily forecast details (High/Low temps, precipitation chance, UV index, wind speed) for a user-specified location or auto-inferred via IP without permission prompts.
+*   **Location Weather**: Displays current weather, daily summary (High/Low temps, precipitation chance, UV index, wind speed), and hourly forecasts for up to 3 locations (primary location is always auto-inferred via IP).
 *   **Custom Message**: Set a personal message to display on the page.
 *   **No Cookies**: All settings are stored in the URL, allowing for easy sharing and bookmarking via permalinks.
 *   **Privacy Focused**: No tracking, no cookies.
@@ -26,8 +26,10 @@ You can configure the page by adding query parameters to the URL:
 *   `n`: Your name (used in the greeting).
 *   `m`: Custom message displayed below the greeting.
 *   `cat`: Predefined category for background images.
-*   `loc`: User-specified location for weather (e.g., `loc=Tokyo` or `loc=London,UK`). If omitted, location is auto-inferred via IP.
+*   `loc`: Optional primary location override (e.g., `loc=Tokyo`). By default, primary location is auto-inferred via IP.
+*   `loc2`: Optional second location (e.g., `loc2=London`).
+*   `loc3`: Optional third location (e.g., `loc3=NewYork`).
 *   `units`: Temperature scale (`c` for Celsius, `f` for Fahrenheit).
-*   `w_mode`: Weather display mode (`compact` for city + current temp, `detailed` to include high/low temps, precipitation, UV index, and wind).
+*   `wm`: Weather display mode (`compact` for daily summary, `detailed` for daily summary + hourly forecast strip).
 
 Use the "Copy" button in the settings panel to generate a permalink with your current settings.
