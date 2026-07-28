@@ -28,6 +28,6 @@ You can configure the page by adding query parameters to the URL:
 *   `cat`: Predefined category for background images.
 *   `loc`: User-specified location for weather (e.g., `loc=Tokyo` or `loc=London,UK`). If omitted, location is auto-inferred via IP.
 *   `units`: Temperature scale (`c` for Celsius, `f` for Fahrenheit).
-*   `w_mode`: Weather display mode (`compact` or `detailed`).
+*   `w_mode`: Weather display mode (`compact` for city + current temp, `detailed` to include high/low temps, precipitation, UV index, and wind).
 
 Use the "Copy" button in the settings panel to generate a permalink with your current settings.

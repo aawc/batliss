@@ -401,23 +401,28 @@
 
                 elIcon.textContent = icon;
 
-                let highLowText = '';
-                if (maxTemp !== null && minTemp !== null) {
-                    highLowText = ` (H:${Math.round(maxTemp)}° L:${Math.round(minTemp)}°)`;
-                }
-
-                elTemp.textContent = `${locName} ${tempDisplay}${highLowText}`;
-
-                let detailsParts = [];
-                if (precip !== null && precip !== undefined) detailsParts.push(`🌧️ ${precip}%`);
-                if (uv !== null && uv !== undefined) detailsParts.push(`UV ${Math.round(uv)}`);
-                if (curr.windspeed !== undefined) detailsParts.push(`💨 ${Math.round(curr.windspeed)} km/h`);
-
-                if (detailsParts.length > 0) {
-                    elDetails.textContent = detailsParts.join(' · ');
-                    elDetails.classList.remove('hidden');
-                } else {
+                if (state.wMode === 'compact') {
+                    elTemp.textContent = `${locName} ${tempDisplay}`;
+                    elDetails.textContent = '';
                     elDetails.classList.add('hidden');
+                } else {
+                    let highLowText = '';
+                    if (maxTemp !== null && minTemp !== null) {
+                        highLowText = ` (H:${Math.round(maxTemp)}° L:${Math.round(minTemp)}°)`;
+                    }
+                    elTemp.textContent = `${locName} ${tempDisplay}${highLowText}`;
+
+                    let detailsParts = [];
+                    if (precip !== null && precip !== undefined) detailsParts.push(`🌧️ ${precip}%`);
+                    if (uv !== null && uv !== undefined) detailsParts.push(`UV ${Math.round(uv)}`);
+                    if (curr.windspeed !== undefined) detailsParts.push(`💨 ${Math.round(curr.windspeed)} km/h`);
+
+                    if (detailsParts.length > 0) {
+                        elDetails.textContent = detailsParts.join(' · ');
+                        elDetails.classList.remove('hidden');
+                    } else {
+                        elDetails.classList.add('hidden');
+                    }
                 }
 
                 widget.classList.remove('hidden');
