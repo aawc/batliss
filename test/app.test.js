@@ -359,8 +359,8 @@ describe('Quotes JSON Schema & File Integrity', () => {
     });
 });
 
-describe('Word of the Day Database Schema & File Integrity', () => {
-    test('loads words.json and validates array length and schema fields', () => {
+describe('Word of the Day Database Schema & Wiktionary Authenticity', () => {
+    test('loads words.json and validates array length, schema fields, and absence of synthetic markers', () => {
         const wordsPath = path.join(process.cwd(), 'words.json');
         assert.equal(fs.existsSync(wordsPath), true);
 
@@ -370,9 +370,42 @@ describe('Word of the Day Database Schema & File Integrity', () => {
 
         for (const entry of wordsData) {
             assert.ok(typeof entry.w === 'string' && entry.w.length >= 3, 'Headword must be at least 3 chars');
+            assert.match(entry.w, /^[a-z]{3,22}$/, `Word "${entry.w}" must contain only lowercase letters`);
             assert.ok(['noun', 'verb', 'adj', 'adv'].includes(entry.p), 'Part of speech must be standard');
             assert.ok(typeof entry.d === 'string' && entry.d.length >= 10, 'Definition must be non-empty string');
-            assert.ok(typeof entry.u === 'string' && entry.u.startsWith('https://en.wiktionary.org/wiki/'), 'Must have Wiktionary link');
+            assert.equal(entry.d.includes('Form associated with'), false, `Synthetic definition marker in ${entry.w}`);
+            if (entry.e) {
+                assert.equal(entry.e.includes('Derivative formed from'), false, `Synthetic etymology marker in ${entry.w}`);
+            }
+            assert.equal(entry.u, `https://en.wiktionary.org/wiki/${encodeURIComponent(entry.w)}`, 'Wiktionary link must match headword');
+        }
+    });
+
+    test('random sample of words in words.json exist on Wiktionary (MediaWiki API probe)', async () => {
+        const wordsPath = path.join(process.cwd(), 'words.json');
+        const wordsData = JSON.parse(fs.readFileSync(wordsPath, 'utf8'));
+
+        const sampleWords = [
+            wordsData[0].w,
+            wordsData[Math.floor(wordsData.length * 0.25)].w,
+            wordsData[Math.floor(wordsData.length * 0.5)].w,
+            wordsData[Math.floor(wordsData.length * 0.75)].w,
+            wordsData[wordsData.length - 1].w
+        ];
+
+        const titles = sampleWords.map(w => encodeURIComponent(w)).join('|');
+        const url = `https://en.wiktionary.org/w/api.php?action=query&titles=${titles}&format=json`;
+
+        const res = await fetch(url, { headers: { 'User-Agent': 'BatlissTestProbe/1.0' } });
+        assert.equal(res.ok, true);
+
+        const data = await res.json();
+        assert.ok(data.query && data.query.pages);
+
+        for (const pageId of Object.keys(data.query.pages)) {
+            const page = data.query.pages[pageId];
+            assert.equal(page.missing, undefined, `Word "${page.title}" does not exist on Wiktionary`);
+            assert.ok(parseInt(pageId, 10) > 0, `Word "${page.title}" must have a valid positive page ID`);
         }
     });
 });
