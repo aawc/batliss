@@ -15,6 +15,7 @@ A beautiful, standalone new tab page for GitHub Pages, inspired by [Tabliss](htt
 ## Architecture & Designs
 
 All technical design documents, architectural specifications, and algorithm evaluations are maintained in the [`designs/`](designs/) directory:
+* [`designs/system_audit_and_hardening_design.md`](designs/system_audit_and_hardening_design.md): System architecture audit, security hardening specifications, testing fidelity roadmap, and automation design.
 * [`designs/word_of_the_day_design.md`](designs/word_of_the_day_design.md): Design and specification for the automated Kaikki dictionary streaming pipeline, Stratified A-Res weighted sampling, and deterministic client selection.
 * [`designs/wiktionary_word_validation_design.md`](designs/wiktionary_word_validation_design.md): Postmortem, authenticity invariants, and MediaWiki API verification architecture guaranteeing 100% active Wiktionary links.
 * [`designs/pwa_state_persistence.md`](designs/pwa_state_persistence.md): Design for offline PWA state persistence and `localStorage` fallback.

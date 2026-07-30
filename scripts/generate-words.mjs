@@ -33,7 +33,8 @@ export function fetchWithRetry(url, maxRedirects = 3, maxRetries = 3, timeoutMs 
           if (redirectCount >= maxRedirects) {
             return reject(new Error(`Exceeded max redirects (${maxRedirects})`));
           }
-          return attempt(res.headers.location, redirectCount + 1, retryCount);
+          const nextUrl = new URL(res.headers.location, currentUrl).href;
+          return attempt(nextUrl, redirectCount + 1, retryCount);
         }
 
         if (res.statusCode !== 200) {

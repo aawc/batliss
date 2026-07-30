@@ -9,12 +9,15 @@ import https from 'node:https';
 
 const WORDS_FILE = path.resolve(process.cwd(), 'words.json');
 
-export function queryMediaWikiBatch(words) {
+export function queryMediaWikiBatch(words, timeoutMs = 15000) {
   return new Promise((resolve, reject) => {
     const titles = words.map(w => encodeURIComponent(w)).join('|');
     const url = `https://en.wiktionary.org/w/api.php?action=query&titles=${titles}&format=json`;
 
-    https.get(url, { headers: { 'User-Agent': 'BatlissWordVerifier/1.0 (https://github.com/aawc/batliss)' } }, (res) => {
+    const req = https.get(url, {
+      timeout: timeoutMs,
+      headers: { 'User-Agent': 'BatlissWordVerifier/1.0 (https://github.com/aawc/batliss)' }
+    }, (res) => {
       if (res.statusCode !== 200) {
         res.resume();
         return reject(new Error(`MediaWiki API HTTP ${res.statusCode}`));
@@ -29,7 +32,13 @@ export function queryMediaWikiBatch(words) {
           reject(err);
         }
       });
-    }).on('error', reject);
+    });
+
+    req.on('timeout', () => {
+      req.destroy(new Error(`MediaWiki request timed out after ${timeoutMs}ms`));
+    });
+
+    req.on('error', reject);
   });
 }
 

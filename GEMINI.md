@@ -8,7 +8,7 @@ Batliss is a standalone, client-side new-tab dashboard inspired by Tabliss, desi
 
 * `index.html`: Primary single-page application (HTML, CSS via Tailwind CDN, Vanilla JS).
 * `test/app.test.js`: Detailed unit test suite (Node.js native test runner `node --test`).
-* `designs/`: Technical design and architecture documents for all features and subsystems (e.g., `designs/word_of_the_day_design.md`, `designs/wiktionary_word_validation_design.md`, `designs/pwa_state_persistence.md`). All future and existing design documents must reside in this directory.
+* `designs/`: Technical design and architecture documents for all features and subsystems (e.g., `designs/system_audit_and_hardening_design.md`, `designs/word_of_the_day_design.md`, `designs/wiktionary_word_validation_design.md`, `designs/pwa_state_persistence.md`). All future and existing design documents must reside in this directory.
 * `scripts/`: Build and dictionary generation scripts executed in CI or development (e.g., `scripts/generate-words.mjs`, `scripts/verify-wiktionary-words.mjs`, `scripts/wotd-utils.mjs`).
 * `PROMPT.md`: Core requirements and specification for the Batliss project.
 * `README.md`: Public-facing project overview and URL parameter reference.

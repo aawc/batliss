@@ -9,12 +9,40 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import zlib from 'node:zlib';
-import { processDump } from '../scripts/generate-words.mjs';
+import http from 'node:http';
+import { processDump, fetchWithRetry } from '../scripts/generate-words.mjs';
 import { StratifiedWeightedSampler, createPRNG } from '../scripts/wotd-utils.mjs';
 
 describe('Streaming Pipeline & Generator Integration', () => {
   const testOutputDir = path.resolve(process.cwd(), 'test');
   const testOutputFile = path.join(testOutputDir, 'test-words.json');
+
+  test('fetchWithRetry follows relative redirect correctly', async () => {
+    let requestCount = 0;
+    const server = http.createServer((req, res) => {
+      requestCount++;
+      if (req.url === '/initial') {
+        res.writeHead(302, { Location: '/target.json' });
+        res.end();
+      } else if (req.url === '/target.json') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('ok');
+      }
+    });
+
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const port = server.address().port;
+    const initialUrl = `http://127.0.0.1:${port}/initial`;
+
+    try {
+      const res = await fetchWithRetry(initialUrl, 3, 0, 5000);
+      assert.equal(res.statusCode, 200);
+      assert.equal(requestCount, 2);
+      res.resume();
+    } finally {
+      await new Promise(resolve => server.close(resolve));
+    }
+  });
 
   test('streams through gzipped synthetic data and writes atomic JSON output', async () => {
     const mockFixturePath = path.resolve(process.cwd(), 'test/fixtures/kaikki-mock.json');
