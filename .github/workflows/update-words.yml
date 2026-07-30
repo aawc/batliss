@@ -16,17 +16,22 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 1
 
       - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: 22
 
       - name: Generate words.json from Kaikki dump stream
+        env:
+          TARGET_COUNT: '5000'
         run: node scripts/generate-words.mjs
+
+      - name: Verify word authenticity against Wiktionary MediaWiki API
+        run: node scripts/verify-wiktionary-words.mjs
 
       - name: Run unit test suite with coverage enforcement
         run: |
@@ -34,10 +39,10 @@ jobs:
             --experimental-test-coverage \
             --test-coverage-lines=90 \
             --test-coverage-branches=80 \
-            test/wotd-utils.test.js test/generate-words.test.js test/app.test.js
+            test/app.test.js test/wotd-utils.test.js test/generate-words.test.js
 
       - name: Commit and push updated words.json
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@e348103e9026cc0eee72ae06630dbe30c8bf7a79 # v5.1.0
         with:
           commit_message: "Automated: update Word of the Day dictionary (words.json)"
           file_pattern: "words.json"

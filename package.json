@@ -4,8 +4,9 @@
   "description": "A beautiful, standalone new tab page inspired by Tabliss.",
   "type": "module",
   "scripts": {
-    "test": "node --test test/app.test.js test/wotd-utils.test.js",
-    "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=80 test/app.test.js test/wotd-utils.test.js"
+    "test": "node --test test/app.test.js test/wotd-utils.test.js test/generate-words.test.js",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=80 test/app.test.js test/wotd-utils.test.js test/generate-words.test.js",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "keywords": [],
   "author": "",

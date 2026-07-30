@@ -64,4 +64,4 @@ Verify that all dictionary entries in `words.json` exist as active articles on W
 node scripts/verify-wiktionary-words.mjs
 ```
 
-A Git pre-commit hook is configured (`.git/hooks/pre-commit`) to automatically run all unit tests before every commit.
+A version-controlled Git pre-commit hook is configured (`.githooks/pre-commit`) to automatically run all unit and integration test suites before every commit. CI is enforced via GitHub Actions (`.github/workflows/ci.yml`) on every push and pull request.
