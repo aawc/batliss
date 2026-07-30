@@ -278,6 +278,7 @@ describe('Service Worker File Integrity', () => {
         const swContent = fs.readFileSync(swPath, 'utf8');
         assert.match(swContent, /CACHE_NAME = 'batliss-cache-v4'/);
         assert.match(swContent, /'\.\/index\.html'/);
+        assert.match(swContent, /'\.\/src\/app-core\.js'/);
         assert.match(swContent, /'\.\/words\.json'/);
         assert.match(swContent, /'\.\/quotes\.json'/);
         assert.match(swContent, /'\.\/manifest\.json'/);
@@ -305,10 +306,12 @@ describe('Mobile Responsive Layout Integrity', () => {
         assert.match(htmlContent, /document\.body\.classList\.toggle\('ui-hidden'\)/);
     });
 
-    test('validates static words.json loader in index.html', () => {
+    test('validates static words.json loader and module import in index.html', () => {
         const indexPath = path.join(process.cwd(), 'index.html');
         const htmlContent = fs.readFileSync(indexPath, 'utf8');
+        assert.match(htmlContent, /Content-Security-Policy/);
+        assert.match(htmlContent, /from '\.\/src\/app-core\.js'/);
         assert.match(htmlContent, /fetch\('words\.json'\)/);
-        assert.match(htmlContent, /getDailyWord\(words/);
+        assert.match(htmlContent, /getDailyWordFromList\(words/);
     });
 });

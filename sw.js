@@ -2,6 +2,7 @@ const CACHE_NAME = 'batliss-cache-v4';
 const urlsToCache = [
   './',
   './index.html',
+  './src/app-core.js',
   './words.json',
   './quotes.json',
   './manifest.json',

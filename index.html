@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://ipwho.is https://freeipapi.com https://ipapi.co https://api.unsplash.com https://picsum.photos https://images.unsplash.com; object-src 'none';">
     <title>New Tab</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:wght@700&family=JetBrains+Mono&display=swap" rel="stylesheet">
@@ -259,7 +260,21 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import {
+            getWeatherIcon,
+            convertCelsiusToFahrenheit,
+            formatGreeting,
+            parseURLState,
+            serializeURLState,
+            buildWeatherLocationsList,
+            formatHourlyTime,
+            resolveBackgroundKeywords,
+            parseCoordinateQuery,
+            extractDailySummary,
+            getDailyWordFromList
+        } from './src/app-core.js';
+
         // Initial Defaults
         let state = {
             format: '24',
@@ -292,34 +307,20 @@
         const syncInput = document.getElementById('sync-url');
 
         function loadSettings() {
-            const params = new URLSearchParams(window.location.search);
-
-            const hasParams = params.has('f') || params.has('s') || params.has('font') || params.has('bg') || params.has('cat') || params.has('n') || params.has('m') || params.has('loc') || params.has('loc2') || params.has('loc3') || params.has('units') || params.has('wm') || params.has('w_mode') || params.has('wotd') || params.has('key');
+            const hasParams = window.location.search.length > 1;
 
             if (hasParams) {
-                if (params.has('f')) state.format = params.get('f');
-                if (params.has('s')) state.seconds = params.get('s') === '1';
-                if (params.has('font')) state.font = params.get('font');
-                if (params.has('bg')) state.bg = params.get('bg');
-                if (params.has('cat')) state.category = params.get('cat');
-                if (params.has('n')) state.name = params.get('n');
-                if (params.has('m')) state.message = params.get('m');
-                if (params.has('loc')) state.loc = params.get('loc');
-                if (params.has('loc2')) state.loc2 = params.get('loc2');
-                if (params.has('loc3')) state.loc3 = params.get('loc3');
-                if (params.has('units')) state.units = params.get('units');
-                if (params.has('wm')) state.wMode = params.get('wm');
-                else if (params.has('w_mode')) state.wMode = params.get('w_mode');
-                if (params.has('wotd')) state.wotd = params.get('wotd') === '1';
-                if (params.has('key')) state.apiKey = params.get('key');
-
-                localStorage.setItem('batliss-settings', JSON.stringify(state));
+                const parsed = parseURLState(window.location.search);
+                state = { ...state, ...parsed };
+                try { localStorage.setItem('batliss-settings', JSON.stringify(state)); } catch {}
             } else {
-                const savedSettings = localStorage.getItem('batliss-settings');
-                if (savedSettings) {
-                    const parsed = JSON.parse(savedSettings);
-                    state = { ...state, ...parsed };
-                }
+                try {
+                    const savedSettings = localStorage.getItem('batliss-settings');
+                    if (savedSettings) {
+                        const parsed = JSON.parse(savedSettings);
+                        state = { ...state, ...parsed };
+                    }
+                } catch {}
             }
 
             document.body.style.fontFamily = state.font + ", sans-serif";
@@ -364,27 +365,78 @@
             }
         }
 
+        async function resolveInferredLocation() {
+            const GEO_CACHE_KEY = 'batliss-cached-geo';
+            const GEO_CACHE_TTL = 3600000; // 1 hour TTL
+
+            try {
+                const cachedStr = localStorage.getItem(GEO_CACHE_KEY);
+                if (cachedStr) {
+                    const cached = JSON.parse(cachedStr);
+                    if (cached && cached.lat && cached.lon && (Date.now() - cached.timestamp < GEO_CACHE_TTL)) {
+                        return { lat: cached.lat, lon: cached.lon, locName: cached.locName || 'Local' };
+                    }
+                }
+            } catch {}
+
+            // Tier 1: ipwho.is (CORS enabled, keyless)
+            try {
+                const res = await fetch('https://ipwho.is/');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success !== false && data.latitude && data.longitude) {
+                        const geo = { lat: data.latitude, lon: data.longitude, locName: data.city || 'Local', timestamp: Date.now() };
+                        try { localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(geo)); } catch {}
+                        return geo;
+                    }
+                }
+            } catch {}
+
+            // Tier 2: freeipapi.com (CORS enabled, keyless)
+            try {
+                const res = await fetch('https://freeipapi.com/api/json');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.latitude && data.longitude) {
+                        const geo = { lat: data.latitude, lon: data.longitude, locName: data.cityName || 'Local', timestamp: Date.now() };
+                        try { localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(geo)); } catch {}
+                        return geo;
+                    }
+                }
+            } catch {}
+
+            // Tier 3: ipapi.co (Fallback)
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.latitude && data.longitude) {
+                        const geo = { lat: data.latitude, lon: data.longitude, locName: data.city || 'Local', timestamp: Date.now() };
+                        try { localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(geo)); } catch {}
+                        return geo;
+                    }
+                }
+            } catch {}
+
+            throw new Error('All IP geolocation tiers failed');
+        }
+
         async function fetchWeather() {
             const widget = document.getElementById('weather-widget');
             const container = document.getElementById('weather-locations-container');
             container.replaceChildren();
 
-            const locations = [
-                { id: 'primary', query: state.loc ? state.loc.trim() : '' },
-                { id: 'loc2', query: state.loc2 ? state.loc2.trim() : '' },
-                { id: 'loc3', query: state.loc3 ? state.loc3.trim() : '' }
-            ].filter((item, idx) => idx === 0 || item.query !== '');
-
+            const locations = buildWeatherLocationsList(state);
             let cardCount = 0;
 
             for (const locItem of locations) {
                 try {
                     let lat, lon, locName;
                     if (locItem.query !== '') {
-                        const coordMatch = locItem.query.match(/^([-\d.]+),\s*([-\d.]+)$/);
-                        if (coordMatch) {
-                            lat = parseFloat(coordMatch[1]);
-                            lon = parseFloat(coordMatch[2]);
+                        const coord = parseCoordinateQuery(locItem.query);
+                        if (coord) {
+                            lat = coord.lat;
+                            lon = coord.lon;
                             locName = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
                         } else {
                             const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(locItem.query)}&count=1&language=en&format=json`);
@@ -397,14 +449,10 @@
                             locName = result.name;
                         }
                     } else {
-                        // Always infer primary location via IP if not specified
-                        const ipRes = await fetch('https://ipapi.co/json/');
-                        if (!ipRes.ok) throw new Error('IP geolocation failed');
-                        const ipData = await ipRes.json();
-                        if (!ipData.latitude || !ipData.longitude) throw new Error('IP location missing');
-                        lat = ipData.latitude;
-                        lon = ipData.longitude;
-                        locName = ipData.city || 'Local';
+                        const inferred = await resolveInferredLocation();
+                        lat = inferred.lat;
+                        lon = inferred.lon;
+                        locName = inferred.locName;
                     }
 
                     const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,weathercode&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max&forecast_days=1&timezone=auto`);
@@ -416,65 +464,90 @@
                     const hourly = weatherData.hourly || {};
 
                     let rawTemp = curr.temperature;
-                    let maxTemp = (daily.temperature_2m_max && daily.temperature_2m_max.length) ? daily.temperature_2m_max[0] : null;
-                    let minTemp = (daily.temperature_2m_min && daily.temperature_2m_min.length) ? daily.temperature_2m_min[0] : null;
-                    let precip = (daily.precipitation_probability_max && daily.precipitation_probability_max.length) ? daily.precipitation_probability_max[0] : null;
-                    let uv = (daily.uv_index_max && daily.uv_index_max.length) ? daily.uv_index_max[0] : null;
-
                     let unitSymbol = '°C';
                     if (state.units === 'f') {
-                        rawTemp = (rawTemp * 9/5) + 32;
-                        if (maxTemp !== null) maxTemp = (maxTemp * 9/5) + 32;
-                        if (minTemp !== null) minTemp = (minTemp * 9/5) + 32;
+                        rawTemp = convertCelsiusToFahrenheit(rawTemp);
                         unitSymbol = '°F';
                     }
 
                     const tempDisplay = `${Math.round(rawTemp)}${unitSymbol}`;
-                    const code = curr.weathercode;
-                    const icon = getWeatherIcon(code);
+                    const icon = getWeatherIcon(curr.weathercode);
+                    const summary = extractDailySummary(daily, state.units);
 
+                    let detailsParts = [];
+                    if (summary.detailsStr) detailsParts.push(summary.detailsStr);
+                    if (curr.windspeed !== undefined) detailsParts.push(`💨 ${Math.round(curr.windspeed)} km/h`);
+                    const detailsStr = detailsParts.join(' · ');
+
+                    // Imperative DOM Construction (XSS-Safe)
                     const itemDiv = document.createElement('div');
                     itemDiv.className = 'weather-location-item border-b border-white/10 pb-3 last:border-0 last:pb-0';
 
-                    let highLowText = '';
-                    if (maxTemp !== null && minTemp !== null) {
-                        highLowText = ` (H:${Math.round(maxTemp)}° L:${Math.round(minTemp)}°)`;
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'flex items-center gap-3';
+
+                    const iconSpan = document.createElement('span');
+                    iconSpan.className = 'text-2xl';
+                    iconSpan.textContent = icon;
+                    headerDiv.appendChild(iconSpan);
+
+                    const textContainer = document.createElement('div');
+                    textContainer.className = 'text-left';
+
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'font-medium text-sm';
+                    titleDiv.textContent = `${locName} ${tempDisplay}${summary.highLowText}`;
+                    textContainer.appendChild(titleDiv);
+
+                    if (detailsStr) {
+                        const detailsDiv = document.createElement('div');
+                        detailsDiv.className = 'text-[11px] opacity-70 mt-0.5';
+                        detailsDiv.textContent = detailsStr;
+                        textContainer.appendChild(detailsDiv);
                     }
 
-                    let detailsParts = [];
-                    if (precip !== null && precip !== undefined) detailsParts.push(`🌧️ ${precip}%`);
-                    if (uv !== null && uv !== undefined) detailsParts.push(`UV ${Math.round(uv)}`);
-                    if (curr.windspeed !== undefined) detailsParts.push(`💨 ${Math.round(curr.windspeed)} km/h`);
+                    headerDiv.appendChild(textContainer);
+                    itemDiv.appendChild(headerDiv);
 
-                    const detailsStr = detailsParts.join(' · ');
-
-                    let hourlyHtml = '';
+                    // Hourly Strip (XSS-Safe)
                     if (state.wMode === 'detailed' && hourly.time && hourly.temperature_2m) {
-                        let hourlyPills = [];
-                        for (let i = 0; i < hourly.time.length && hourlyPills.length < 8; i += 2) {
+                        const hourlyContainer = document.createElement('div');
+                        hourlyContainer.className = 'flex gap-1.5 overflow-x-auto pt-2 mt-2 border-t border-white/10 text-[10px] select-none scrollbar-none';
+                        let pillCount = 0;
+
+                        for (let i = 0; i < hourly.time.length && pillCount < 8; i += 2) {
                             const timeStr = hourly.time[i];
                             const hourVal = parseInt(timeStr.split('T')[1].split(':')[0], 10);
                             let hTemp = hourly.temperature_2m[i];
-                            if (state.units === 'f') hTemp = (hTemp * 9/5) + 32;
+                            if (state.units === 'f') hTemp = convertCelsiusToFahrenheit(hTemp);
                             const hIcon = getWeatherIcon(hourly.weathercode ? hourly.weathercode[i] : 0);
-                            const displayHour = state.format === '12' ? (hourVal % 12 || 12) + (hourVal >= 12 ? 'p' : 'a') : hourVal + 'h';
-                            hourlyPills.push(`<div class="flex flex-col items-center min-w-[34px] glass px-1.5 py-1 rounded"><span class="opacity-70">${displayHour}</span><span>${hIcon}</span><span class="font-medium">${Math.round(hTemp)}°</span></div>`);
+                            const displayHour = formatHourlyTime(hourVal, state.format);
+
+                            const pill = document.createElement('div');
+                            pill.className = 'flex flex-col items-center min-w-[34px] glass px-1.5 py-1 rounded';
+
+                            const hourSpan = document.createElement('span');
+                            hourSpan.className = 'opacity-70';
+                            hourSpan.textContent = displayHour;
+
+                            const iconEl = document.createElement('span');
+                            iconEl.textContent = hIcon;
+
+                            const tempSpan = document.createElement('span');
+                            tempSpan.className = 'font-medium';
+                            tempSpan.textContent = `${Math.round(hTemp)}°`;
+
+                            pill.appendChild(hourSpan);
+                            pill.appendChild(iconEl);
+                            pill.appendChild(tempSpan);
+                            hourlyContainer.appendChild(pill);
+                            pillCount++;
                         }
-                        if (hourlyPills.length > 0) {
-                            hourlyHtml = `<div class="flex gap-1.5 overflow-x-auto pt-2 mt-2 border-t border-white/10 text-[10px] select-none scrollbar-none">${hourlyPills.join('')}</div>`;
+
+                        if (pillCount > 0) {
+                            itemDiv.appendChild(hourlyContainer);
                         }
                     }
-
-                    itemDiv.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">${icon}</span>
-                            <div class="text-left">
-                                <div class="font-medium text-sm">${locName} ${tempDisplay}${highLowText}</div>
-                                ${detailsStr ? `<div class="text-[11px] opacity-70 mt-0.5">${detailsStr}</div>` : ''}
-                            </div>
-                        </div>
-                        ${hourlyHtml}
-                    `;
 
                     container.appendChild(itemDiv);
                     cardCount++;
@@ -490,48 +563,7 @@
             }
         }
 
-        function getWeatherIcon(code) {
-            if (code === 0) return '☀️';
-            if ([1, 2, 3].includes(code)) return '🌤️';
-            if ([45, 48].includes(code)) return '🌫️';
-            if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return '🌧️';
-            if ([71, 73, 75, 77, 85, 86].includes(code)) return '🌨️';
-            if ([95, 96, 99].includes(code)) return '🌩️';
-            return '🌡️';
-        }
-
         let wordsDatabase = [];
-
-        function hashDateString(str) {
-            let hash = 2166136261 >>> 0;
-            for (let i = 0; i < str.length; i++) {
-                hash ^= str.charCodeAt(i);
-                hash = Math.imul(hash, 16777619) >>> 0;
-            }
-            return hash >>> 0;
-        }
-
-        function createWotdPRNG(seed) {
-            let s = (seed >>> 0) || 1;
-            return function next() {
-                s = (s + 0x6D2B79F5) >>> 0;
-                let t = Math.imul(s ^ (s >>> 15), 1 | s);
-                t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-            };
-        }
-
-        function getDailyWord(wordsList, dateObj = new Date()) {
-            if (!Array.isArray(wordsList) || wordsList.length === 0) return null;
-            const y = dateObj.getFullYear();
-            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const d = String(dateObj.getDate()).padStart(2, '0');
-            const dateKey = `${y}-${m}-${d}`;
-            const dateHash = hashDateString(dateKey);
-            const prng = createWotdPRNG(dateHash);
-            const index = Math.floor(prng() * wordsList.length);
-            return wordsList[index];
-        }
 
         async function loadWordsDatabase() {
             if (wordsDatabase.length > 0) return wordsDatabase;
@@ -567,7 +599,7 @@
             }
 
             const words = await loadWordsDatabase();
-            const todayWord = getDailyWord(words, new Date());
+            const todayWord = getDailyWordFromList(words, new Date());
 
             if (!todayWord) {
                 widget.classList.add('hidden');
@@ -594,23 +626,7 @@
         }
 
         function updateSyncURL(isInitial = false) {
-            const params = new URLSearchParams();
-            params.set('f', state.format);
-            params.set('s', state.seconds ? '1' : '0');
-            params.set('font', state.font);
-            params.set('bg', state.bg);
-            params.set('cat', state.category);
-            if (state.name) params.set('n', state.name);
-            if (state.message) params.set('m', state.message);
-            if (state.loc) params.set('loc', state.loc);
-            if (state.loc2) params.set('loc2', state.loc2);
-            if (state.loc3) params.set('loc3', state.loc3);
-            if (state.units && state.units !== 'c') params.set('units', state.units);
-            if (state.wMode && state.wMode !== 'compact') params.set('wm', state.wMode);
-            if (state.wotd === false) params.set('wotd', '0');
-            if (state.apiKey) params.set('key', state.apiKey);
-
-            const newSearch = `?${params.toString()}`;
+            const newSearch = `?${serializeURLState(state)}`;
             syncInput.value = window.location.origin + window.location.pathname + newSearch;
 
             try {
