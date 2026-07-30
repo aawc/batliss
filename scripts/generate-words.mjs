@@ -20,6 +20,8 @@ import {
 const PRIMARY_URL = process.env.SOURCE_URL || 'https://kaikki.org/dictionary/English/kaikki.org-dictionary-English.jsonl.gz';
 const OUTPUT_FILE = path.resolve(process.cwd(), 'words.json');
 const TEMP_FILE = path.resolve(process.cwd(), 'words.json.tmp');
+const TARGET_COUNT = parseInt(process.env.TARGET_COUNT || '5000', 10);
+const MAX_LINES = parseInt(process.env.MAX_LINES || '0', 10);
 
 export function fetchWithRetry(url, maxRedirects = 3, maxRetries = 3, timeoutMs = 30000) {
   return new Promise((resolve, reject) => {
@@ -68,8 +70,14 @@ export async function processDump(sourceStream = null, customSampler = null, out
   const seed = hashString(seedStr);
   const rng = createPRNG(seed);
 
+  // Proportional quotas based on target count
+  const nQuota = Math.floor(TARGET_COUNT * 0.45);
+  const vQuota = Math.floor(TARGET_COUNT * 0.25);
+  const adjQuota = Math.floor(TARGET_COUNT * 0.22);
+  const advQuota = TARGET_COUNT - nQuota - vQuota - adjQuota;
+
   const sampler = customSampler || new StratifiedWeightedSampler(
-    { noun: 2250, verb: 1250, adj: 1100, adv: 400 },
+    { noun: nQuota, verb: vQuota, adj: adjQuota, adv: advQuota },
     rng
   );
 
@@ -108,7 +116,12 @@ export async function processDump(sourceStream = null, customSampler = null, out
     }
 
     if (lineCount % 100000 === 0) {
-      console.log(`Processed ${lineCount.toLocaleString()} lines | Candidates: ${candidateCount.toLocaleString()}`);
+      console.log(`Processed ${lineCount.toLocaleString()} lines | Candidates: ${candidateCount.toLocaleString()} | Sampled: ${sampler.getSamples().length}`);
+    }
+
+    if (MAX_LINES > 0 && lineCount >= MAX_LINES) {
+      console.log(`Reached MAX_LINES (${MAX_LINES}). Finishing stream early...`);
+      break;
     }
   }
 
