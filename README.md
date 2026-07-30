@@ -7,10 +7,16 @@ A beautiful, standalone new tab page for GitHub Pages, inspired by [Tabliss](htt
 *   **Beautiful Backgrounds**: Pulled from Unsplash based on your preferences.
 *   **Clock**: Displays current time in your local timezone.
 *   **Location Weather**: Displays current weather, daily summary (High/Low temps, precipitation chance, UV index, wind speed), and hourly forecasts for up to 3 locations (primary location is always auto-inferred via IP).
-*   **Wiktionary Word of the Day**: Displays today's featured word, definition, and direct Wiktionary permalink in a glassmorphic top-left badge.
+*   **Word of the Day**: Displays today's featured word, IPA pronunciation, definition, etymology, and direct Wiktionary permalink in a glassmorphic top-left badge. Uses a pre-generated, static compact dictionary (`words.json`) sampled from Kaikki English dictionary dumps and selected deterministically via a date-based PRNG.
 *   **Custom Message**: Set a personal message to display on the page.
 *   **No Cookies**: All settings are stored in the URL, allowing for easy sharing and bookmarking via permalinks.
 *   **Privacy Focused**: No tracking, no cookies.
+
+## Architecture & Designs
+
+All technical design documents, architectural specifications, and algorithm evaluations are maintained in the [`designs/`](designs/) directory:
+* [`designs/word_of_the_day_design.md`](designs/word_of_the_day_design.md): Design and specification for the automated Kaikki dictionary streaming pipeline, Stratified A-Res weighted sampling, and deterministic client selection.
+* [`designs/pwa_state_persistence.md`](designs/pwa_state_persistence.md): Design for offline PWA state persistence and `localStorage` fallback.
 
 ## Usage
 
