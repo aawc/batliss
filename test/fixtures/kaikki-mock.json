@@ -1,0 +1,64 @@
+[
+  {
+    "word": "serendipity",
+    "pos": "noun",
+    "lang_code": "en",
+    "senses": [
+      {
+        "glosses": ["The faculty of making fortunate discoveries by accident."],
+        "tags": []
+      }
+    ],
+    "sounds": [{ "ipa": "ˌsɛɹənˈdɪpɪti" }],
+    "etymology_text": "Coined by Horace Walpole in 1754 from Serendip."
+  },
+  {
+    "word": "resilient",
+    "pos": "adj",
+    "lang_code": "en",
+    "senses": [
+      {
+        "glosses": ["Able to recover quickly from misfortune or difficulty."],
+        "tags": []
+      }
+    ],
+    "sounds": [{ "ipa": "/ɹɪˈzɪl.jənt/" }]
+  },
+  {
+    "word": "London",
+    "pos": "proper noun",
+    "lang_code": "en",
+    "senses": [{ "glosses": ["Capital city of the United Kingdom."] }]
+  },
+  {
+    "word": "running",
+    "pos": "verb",
+    "lang_code": "en",
+    "forms": [{ "tags": ["form-of"] }],
+    "senses": [{ "glosses": ["Present participle of run."], "tags": ["form-of"] }]
+  },
+  {
+    "word": "anti-",
+    "pos": "prefix",
+    "lang_code": "en",
+    "senses": [{ "glosses": ["Opposed to or against."] }]
+  },
+  {
+    "word": "badword",
+    "pos": "noun",
+    "lang_code": "en",
+    "senses": [{ "glosses": ["An offensive vulgar term."], "tags": ["offensive", "vulgar"] }]
+  },
+  {
+    "word": "methylcyclohexane",
+    "pos": "noun",
+    "lang_code": "en",
+    "senses": [{ "glosses": ["An organic hydrocarbon."], "topics": ["organic-chemistry"] }]
+  },
+  {
+    "word": "bonjour",
+    "pos": "noun",
+    "lang_code": "fr",
+    "senses": [{ "glosses": ["Hello in French."] }]
+  }
+]
