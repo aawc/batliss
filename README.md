@@ -16,6 +16,7 @@ A beautiful, standalone new tab page for GitHub Pages, inspired by [Tabliss](htt
 
 All technical design documents, architectural specifications, and algorithm evaluations are maintained in the [`designs/`](designs/) directory:
 * [`designs/word_of_the_day_design.md`](designs/word_of_the_day_design.md): Design and specification for the automated Kaikki dictionary streaming pipeline, Stratified A-Res weighted sampling, and deterministic client selection.
+* [`designs/wiktionary_word_validation_design.md`](designs/wiktionary_word_validation_design.md): Postmortem, authenticity invariants, and MediaWiki API verification architecture guaranteeing 100% active Wiktionary links.
 * [`designs/pwa_state_persistence.md`](designs/pwa_state_persistence.md): Design for offline PWA state persistence and `localStorage` fallback.
 
 ## Usage
@@ -42,12 +43,24 @@ You can configure the page by adding query parameters to the URL:
 
 Use the "Copy" button in the settings panel to generate a permalink with your current settings.
 
-## Testing
+## Testing & Verification
 
 Run unit tests locally via Node.js native test runner:
 
 ```bash
-node --test test/app.test.js
+node --test test/app.test.js test/wotd-utils.test.js test/generate-words.test.js
+```
+
+Run test suite with native code coverage:
+
+```bash
+node --test --experimental-test-coverage test/wotd-utils.test.js test/generate-words.test.js test/app.test.js
+```
+
+Verify that all dictionary entries in `words.json` exist as active articles on Wiktionary:
+
+```bash
+node scripts/verify-wiktionary-words.mjs
 ```
 
 A Git pre-commit hook is configured (`.git/hooks/pre-commit`) to automatically run all unit tests before every commit.
