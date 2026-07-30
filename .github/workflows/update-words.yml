@@ -1,0 +1,45 @@
+name: Update Word of the Day Dictionary
+
+on:
+  schedule:
+    # Monthly at 00:00 UTC on the 1st of every month
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-dictionary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Generate words.json from Kaikki dump stream
+        run: node scripts/generate-words.mjs
+
+      - name: Run unit test suite with coverage enforcement
+        run: |
+          node --test \
+            --experimental-test-coverage \
+            --test-coverage-lines=90 \
+            --test-coverage-branches=80 \
+            test/wotd-utils.test.js test/generate-words.test.js test/app.test.js
+
+      - name: Commit and push updated words.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Automated: update Word of the Day dictionary (words.json)"
+          file_pattern: "words.json"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "github-actions[bot]@users.noreply.github.com"
