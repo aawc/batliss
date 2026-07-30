@@ -1,7 +1,8 @@
-const CACHE_NAME = 'batliss-cache-v2';
+const CACHE_NAME = 'batliss-cache-v3';
 const urlsToCache = [
   './',
   './index.html',
+  './words.json',
   './quotes.json',
   './manifest.json'
 ];

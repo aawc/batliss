@@ -359,63 +359,21 @@ describe('Quotes JSON Schema & File Integrity', () => {
     });
 });
 
-export function parseWotdData(wikitext) {
-    if (!wikitext) return { word: '', definition: '' };
+describe('Word of the Day Database Schema & File Integrity', () => {
+    test('loads words.json and validates array length and schema fields', () => {
+        const wordsPath = path.join(process.cwd(), 'words.json');
+        assert.equal(fs.existsSync(wordsPath), true);
 
-    const titleMatch = wikitext.match(/id="WOTD-rss-title">([^<]+)<\/a>/) || wikitext.match(/id="WOTD-rss-title">([^<]+)<\/span>/);
-    const word = titleMatch ? titleMatch[1].trim() : '';
+        const wordsData = JSON.parse(fs.readFileSync(wordsPath, 'utf8'));
+        assert.ok(Array.isArray(wordsData));
+        assert.ok(wordsData.length >= 1000, 'Word database should contain at least 1,000 words');
 
-    const descMatch = wikitext.match(/id="WOTD-rss-description">(.*?)<\/div>/s);
-    let definition = '';
-    if (descMatch) {
-        let rawDesc = descMatch[1];
-        const parts = rawDesc.split('#').map(p => p.trim()).filter(p => p.length > 0);
-        let firstDef = parts.length > 0 ? parts[0] : rawDesc;
-
-        definition = firstDef
-            .replace(/\[\[Category:[^\]]+\]\]/gi, '')
-            .replace(/\[\[File:[^\]]+\]\]/gi, '')
-            .replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, '$1')
-            .replace(/<[^>]+>/g, ' ')
-            .replace(/\(\s*\)/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-    }
-
-    return { word, definition };
-}
-
-describe('Wiktionary Word of the Day Parser', () => {
-    test('parses word title and definition from expanded wikitext snippet', () => {
-        const sampleWikitext = `
-            <span id="WOTD-rss-title">no man's land</span>
-            <div id="WOTD-rss-description">
-            # The ground between trenches where a soldier from either side would be easily targeted.
-            </div>
-        `;
-
-        const parsed = parseWotdData(sampleWikitext);
-        assert.equal(parsed.word, "no man's land");
-        assert.equal(parsed.definition, "The ground between trenches where a soldier from either side would be easily targeted.");
-    });
-
-    test('strips category tags, file tags, wiki brackets, and list numbers from raw wikitext', () => {
-        const rawWikitext = `
-            <span id="WOTD-rss-title">no man's land</span>
-            <div id="WOTD-rss-description">
-            # ([[military|military]][[Category:en:Military|API]]) The [[ground]] between [[trench]]es where a [[soldier]] from either side would be [[easily]] [[targeted]]. # ([[nautical|nautical]][[Category:en:Nautical|API]]) A [[space]] [[amidships]] used to keep [[block]]s, [[rope]]s, etc.
-            </div>
-        `;
-
-        const parsed = parseWotdData(rawWikitext);
-        assert.equal(parsed.word, "no man's land");
-        assert.equal(parsed.definition, "(military) The ground between trenches where a soldier from either side would be easily targeted.");
-    });
-
-    test('handles empty or malformed wikitext gracefully', () => {
-        const parsed = parseWotdData('');
-        assert.equal(parsed.word, '');
-        assert.equal(parsed.definition, '');
+        for (const entry of wordsData) {
+            assert.ok(typeof entry.w === 'string' && entry.w.length >= 3, 'Headword must be at least 3 chars');
+            assert.ok(['noun', 'verb', 'adj', 'adv'].includes(entry.p), 'Part of speech must be standard');
+            assert.ok(typeof entry.d === 'string' && entry.d.length >= 10, 'Definition must be non-empty string');
+            assert.ok(typeof entry.u === 'string' && entry.u.startsWith('https://en.wiktionary.org/wiki/'), 'Must have Wiktionary link');
+        }
     });
 });
 
@@ -425,8 +383,9 @@ describe('Service Worker File Integrity', () => {
         assert.equal(fs.existsSync(swPath), true);
 
         const swContent = fs.readFileSync(swPath, 'utf8');
-        assert.match(swContent, /CACHE_NAME = 'batliss-cache-v2'/);
+        assert.match(swContent, /CACHE_NAME = 'batliss-cache-v3'/);
         assert.match(swContent, /'\.\/index\.html'/);
+        assert.match(swContent, /'\.\/words\.json'/);
         assert.match(swContent, /'\.\/quotes\.json'/);
         assert.match(swContent, /'\.\/manifest\.json'/);
     });
@@ -448,5 +407,12 @@ describe('Mobile Responsive Layout Integrity', () => {
         assert.match(htmlContent, /\.hidden-ui\s*\{\s*opacity:\s*1/);
         assert.match(htmlContent, /body\.ui-hidden \.hidden-ui/);
         assert.match(htmlContent, /document\.body\.classList\.toggle\('ui-hidden'\)/);
+    });
+
+    test('validates static words.json loader in index.html', () => {
+        const indexPath = path.join(process.cwd(), 'index.html');
+        const htmlContent = fs.readFileSync(indexPath, 'utf8');
+        assert.match(htmlContent, /fetch\('words\.json'\)/);
+        assert.match(htmlContent, /getDailyWord\(words/);
     });
 });
