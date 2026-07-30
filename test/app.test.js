@@ -416,11 +416,14 @@ describe('Service Worker File Integrity', () => {
         assert.equal(fs.existsSync(swPath), true);
 
         const swContent = fs.readFileSync(swPath, 'utf8');
-        assert.match(swContent, /CACHE_NAME = 'batliss-cache-v3'/);
+        assert.match(swContent, /CACHE_NAME = 'batliss-cache-v4'/);
         assert.match(swContent, /'\.\/index\.html'/);
         assert.match(swContent, /'\.\/words\.json'/);
         assert.match(swContent, /'\.\/quotes\.json'/);
         assert.match(swContent, /'\.\/manifest\.json'/);
+        assert.match(swContent, /'\.\/icon-192\.png'/);
+        assert.match(swContent, /'\.\/icon-512\.png'/);
+        assert.match(swContent, /ignoreSearch:\s*true/);
     });
 });
 

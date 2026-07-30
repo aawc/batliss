@@ -1,10 +1,12 @@
-const CACHE_NAME = 'batliss-cache-v3';
+const CACHE_NAME = 'batliss-cache-v4';
 const urlsToCache = [
   './',
   './index.html',
   './words.json',
   './quotes.json',
-  './manifest.json'
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 self.addEventListener('install', event => {
@@ -23,16 +25,22 @@ self.addEventListener('fetch', event => {
   // Stale-While-Revalidate for local app shell assets
   if (url.origin === location.origin) {
     event.respondWith(
-      caches.open(CACHE_NAME).then(cache => {
-        return cache.match(event.request).then(cachedResponse => {
-          const fetchPromise = fetch(event.request).then(networkResponse => {
-            if (networkResponse && networkResponse.status === 200) {
-              cache.put(event.request, networkResponse.clone());
-            }
-            return networkResponse;
-          }).catch(() => {});
-          return cachedResponse || fetchPromise;
+      caches.open(CACHE_NAME).then(async cache => {
+        const cachedResponse = await cache.match(event.request, { ignoreSearch: true });
+
+        const fetchPromise = fetch(event.request).then(networkResponse => {
+          if (networkResponse && networkResponse.status === 200) {
+            cache.put(event.request, networkResponse.clone());
+          }
+          return networkResponse;
+        }).catch(err => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          throw err;
         });
+
+        return cachedResponse || fetchPromise;
       })
     );
     return;
