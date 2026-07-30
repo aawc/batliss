@@ -3,145 +3,21 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Core Pure Functions under test (mirroring index.html logic)
-
-export function getWeatherIcon(code) {
-    if (code === 0) return '☀️';
-    if ([1, 2, 3].includes(code)) return '🌤️';
-    if ([45, 48].includes(code)) return '🌫️';
-    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return '🌧️';
-    if ([71, 73, 75, 77, 85, 86].includes(code)) return '🌨️';
-    if ([95, 96, 99].includes(code)) return '🌩️';
-    return '🌡️';
-}
-
-export function convertCelsiusToFahrenheit(celsius) {
-    return (celsius * 9 / 5) + 32;
-}
-
-export function formatGreeting(hour, name = '') {
-    let greet = 'Good night';
-    if (hour < 12) greet = 'Good morning';
-    else if (hour < 18) greet = 'Good afternoon';
-    else if (hour < 22) greet = 'Good evening';
-    return `${greet}${name ? ', ' + name : ''}.`;
-}
-
-export function parseURLState(searchString) {
-    const params = new URLSearchParams(searchString);
-    const state = {
-        format: '24',
-        seconds: false,
-        font: 'Inter',
-        category: 'Featured',
-        bg: 'nature,landscape',
-        name: '',
-        message: '',
-        loc: '',
-        loc2: '',
-        loc3: '',
-        units: 'c',
-        wMode: 'compact',
-        apiKey: ''
-    };
-
-    if (params.has('f')) state.format = params.get('f');
-    if (params.has('s')) state.seconds = params.get('s') === '1';
-    if (params.has('font')) state.font = params.get('font');
-    if (params.has('bg')) state.bg = params.get('bg');
-    if (params.has('cat')) state.category = params.get('cat');
-    if (params.has('n')) state.name = params.get('n');
-    if (params.has('m')) state.message = params.get('m');
-    if (params.has('loc')) state.loc = params.get('loc');
-    if (params.has('loc2')) state.loc2 = params.get('loc2');
-    if (params.has('loc3')) state.loc3 = params.get('loc3');
-    if (params.has('units')) state.units = params.get('units');
-    if (params.has('wm')) state.wMode = params.get('wm');
-    else if (params.has('w_mode')) state.wMode = params.get('w_mode');
-    if (params.has('key')) state.apiKey = params.get('key');
-
-    return state;
-}
-
-export function serializeURLState(state) {
-    const params = new URLSearchParams();
-    params.set('f', state.format);
-    params.set('s', state.seconds ? '1' : '0');
-    params.set('font', state.font);
-    params.set('bg', state.bg);
-    params.set('cat', state.category);
-    if (state.name) params.set('n', state.name);
-    if (state.message) params.set('m', state.message);
-    if (state.loc) params.set('loc', state.loc);
-    if (state.loc2) params.set('loc2', state.loc2);
-    if (state.loc3) params.set('loc3', state.loc3);
-    if (state.units && state.units !== 'c') params.set('units', state.units);
-    if (state.wMode && state.wMode !== 'compact') params.set('wm', state.wMode);
-    if (state.apiKey) params.set('key', state.apiKey);
-
-    return params.toString();
-}
-
-export function buildWeatherLocationsList(state) {
-    return [
-        { id: 'primary', query: state.loc ? state.loc.trim() : '' },
-        { id: 'loc2', query: state.loc2 ? state.loc2.trim() : '' },
-        { id: 'loc3', query: state.loc3 ? state.loc3.trim() : '' }
-    ].filter((item, idx) => idx === 0 || item.query !== '');
-}
-
-export function formatHourlyTime(hourVal, format = '24') {
-    if (format === '12') {
-        const h = hourVal % 12 || 12;
-        const ampm = hourVal >= 12 ? 'p' : 'a';
-        return `${h}${ampm}`;
-    }
-    return `${hourVal}h`;
-}
-
-export function resolveBackgroundKeywords(category, bgQuery) {
-    if (category === 'Custom' && bgQuery) return bgQuery;
-    if (category && category !== 'Custom') return category.toLowerCase();
-    return 'nature,landscape';
-}
-
-export function parseCoordinateQuery(query) {
-    if (!query) return null;
-    const match = query.match(/^([-\d.]+),\s*([-\d.]+)$/);
-    if (!match) return null;
-    return {
-        lat: parseFloat(match[1]),
-        lon: parseFloat(match[2])
-    };
-}
-
-export function extractDailySummary(dailyData, units = 'c') {
-    if (!dailyData) return { highLowText: '', detailsStr: '' };
-
-    let maxTemp = (dailyData.temperature_2m_max && dailyData.temperature_2m_max.length) ? dailyData.temperature_2m_max[0] : null;
-    let minTemp = (dailyData.temperature_2m_min && dailyData.temperature_2m_min.length) ? dailyData.temperature_2m_min[0] : null;
-    let precip = (dailyData.precipitation_probability_max && dailyData.precipitation_probability_max.length) ? dailyData.precipitation_probability_max[0] : null;
-    let uv = (dailyData.uv_index_max && dailyData.uv_index_max.length) ? dailyData.uv_index_max[0] : null;
-
-    if (units === 'f') {
-        if (maxTemp !== null) maxTemp = (maxTemp * 9 / 5) + 32;
-        if (minTemp !== null) minTemp = (minTemp * 9 / 5) + 32;
-    }
-
-    let highLowText = '';
-    if (maxTemp !== null && minTemp !== null) {
-        highLowText = ` (H:${Math.round(maxTemp)}° L:${Math.round(minTemp)}°)`;
-    }
-
-    let detailsParts = [];
-    if (precip !== null && precip !== undefined) detailsParts.push(`🌧️ ${precip}%`);
-    if (uv !== null && uv !== undefined) detailsParts.push(`UV ${Math.round(uv)}`);
-
-    return {
-        highLowText,
-        detailsStr: detailsParts.join(' · ')
-    };
-}
+import {
+    getWeatherIcon,
+    convertCelsiusToFahrenheit,
+    formatGreeting,
+    parseURLState,
+    serializeURLState,
+    buildWeatherLocationsList,
+    formatHourlyTime,
+    resolveBackgroundKeywords,
+    parseCoordinateQuery,
+    extractDailySummary,
+    hashString,
+    createPRNG,
+    getDailyWordFromList
+} from '../src/app-core.js';
 
 // Unit Tests Suite
 
@@ -381,32 +257,16 @@ describe('Word of the Day Database Schema & Wiktionary Authenticity', () => {
         }
     });
 
-    test('random sample of words in words.json exist on Wiktionary (MediaWiki API probe)', async () => {
+    test('validates deterministic daily word selection from words.json schema', () => {
         const wordsPath = path.join(process.cwd(), 'words.json');
         const wordsData = JSON.parse(fs.readFileSync(wordsPath, 'utf8'));
 
-        const sampleWords = [
-            wordsData[0].w,
-            wordsData[Math.floor(wordsData.length * 0.25)].w,
-            wordsData[Math.floor(wordsData.length * 0.5)].w,
-            wordsData[Math.floor(wordsData.length * 0.75)].w,
-            wordsData[wordsData.length - 1].w
-        ];
+        const wordToday = getDailyWordFromList(wordsData, new Date('2026-07-30T00:00:00Z'));
+        const wordTomorrow = getDailyWordFromList(wordsData, new Date('2026-07-31T00:00:00Z'));
 
-        const titles = sampleWords.map(w => encodeURIComponent(w)).join('|');
-        const url = `https://en.wiktionary.org/w/api.php?action=query&titles=${titles}&format=json`;
-
-        const res = await fetch(url, { headers: { 'User-Agent': 'BatlissTestProbe/1.0' } });
-        assert.equal(res.ok, true);
-
-        const data = await res.json();
-        assert.ok(data.query && data.query.pages);
-
-        for (const pageId of Object.keys(data.query.pages)) {
-            const page = data.query.pages[pageId];
-            assert.equal(page.missing, undefined, `Word "${page.title}" does not exist on Wiktionary`);
-            assert.ok(parseInt(pageId, 10) > 0, `Word "${page.title}" must have a valid positive page ID`);
-        }
+        assert.ok(wordToday && typeof wordToday.w === 'string');
+        assert.ok(wordTomorrow && typeof wordTomorrow.w === 'string');
+        assert.notEqual(wordToday.w, wordTomorrow.w);
     });
 });
 

@@ -4,26 +4,13 @@
  * stratified A-Res reservoir sampling, and deterministic date PRNG.
  */
 
-// Mulberry32 deterministic 32-bit PRNG
-export function createPRNG(seed) {
-  let s = (seed >>> 0) || 1;
-  return function next() {
-    s = (s + 0x6D2B79F5) >>> 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+import {
+  createPRNG,
+  hashString,
+  getDailyWordFromList
+} from '../src/app-core.js';
 
-// 32-bit FNV-1a Hash
-export function hashString(str) {
-  let hash = 2166136261 >>> 0;
-  for (let i = 0; i < str.length; i++) {
-    hash ^= str.charCodeAt(i);
-    hash = Math.imul(hash, 16777619) >>> 0;
-  }
-  return hash >>> 0;
-}
+export { createPRNG, hashString, getDailyWordFromList };
 
 const DISALLOWED_TAGS = new Set([
   'offensive', 'vulgar', 'derogatory', 'slur', 'pejorative', 'obscene',
@@ -175,22 +162,4 @@ export class StratifiedWeightedSampler {
     }
     return all.sort((a, b) => a.w.localeCompare(b.w));
   }
-}
-
-/**
- * Deterministic Daily Word Picker
- */
-export function getDailyWordFromList(wordsList, dateObj = new Date()) {
-  if (!Array.isArray(wordsList) || wordsList.length === 0) return null;
-
-  const y = dateObj.getFullYear();
-  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const d = String(dateObj.getDate()).padStart(2, '0');
-  const dateKey = `${y}-${m}-${d}`;
-
-  const dateHash = hashString(dateKey);
-  const prng = createPRNG(dateHash);
-  const randomIndex = Math.floor(prng() * wordsList.length);
-
-  return wordsList[randomIndex];
 }
