@@ -427,5 +427,9 @@ describe('Mobile Responsive Layout Integrity', () => {
         assert.match(htmlContent, /\.hidden-ui\s*\{\s*opacity:\s*1/);
         assert.match(htmlContent, /body\.ui-hidden \.hidden-ui/);
         assert.match(htmlContent, /document\.body\.classList\.toggle\('ui-hidden'\)/);
+
+        // Verify click isolation on widgets to prevent UI toggling on widget interactions
+        assert.match(htmlContent, /weatherWidget\.addEventListener\('click',[\s\S]*?e\.stopPropagation\(\)/);
+        assert.match(htmlContent, /e\.composedPath/);
     });
 });

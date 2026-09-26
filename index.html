@@ -598,6 +598,7 @@
 
         const weatherWidget = document.getElementById('weather-widget');
         weatherWidget.addEventListener('click', (e) => {
+            e.stopPropagation();
             if (e.target.closest('a') || e.target.closest('button')) return;
             toggleWeatherMode();
         });
@@ -605,6 +606,7 @@
         weatherWidget.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ' || e.code === 'Space') {
                 e.preventDefault();
+                e.stopPropagation();
                 toggleWeatherMode();
             }
         });
@@ -754,6 +756,10 @@
             setTimeout(() => panel.classList.add('hidden'), 300);
         };
 
+        panel.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
         document.getElementById('refresh-bg').onclick = () => {
             fetchBackground();
         };
@@ -836,7 +842,20 @@
 
         // Click or tap anywhere outside widgets to toggle UI visibility
         document.addEventListener('click', (e) => {
-            if (e.target.closest('#settings-panel') || e.target.closest('#weather-widget') || e.target.closest('button') || e.target.closest('a') || e.target.closest('input') || e.target.closest('select')) {
+            const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+            const isInsideWidget = path.some(el =>
+                el instanceof Element && (
+                    el.id === 'settings-panel' ||
+                    el.id === 'weather-widget' ||
+                    ['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName)
+                )
+            ) || (e.target && e.target.closest && (
+                e.target.closest('#settings-panel') ||
+                e.target.closest('#weather-widget') ||
+                e.target.closest('button, a, input, select, textarea')
+            ));
+
+            if (isInsideWidget) {
                 return;
             }
             document.body.classList.toggle('ui-hidden');
