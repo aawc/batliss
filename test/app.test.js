@@ -334,6 +334,63 @@ describe('Quotes JSON Schema & File Integrity', () => {
     });
 });
 
+describe('Weather Widget Expand/Collapse & Accessibility Contract', () => {
+    test('parses and serializes weather display mode url state without wotd', () => {
+        const detailedState = parseURLState('?wm=detailed');
+        assert.equal(detailedState.wMode, 'detailed');
+
+        const compactState = parseURLState('?wm=compact');
+        assert.equal(compactState.wMode, 'compact');
+
+        const serializedDetailed = serializeURLState({
+            format: '24', seconds: false, font: 'Inter', category: 'Featured',
+            bg: 'nature', name: '', message: '', loc: '', loc2: '', loc3: '',
+            units: 'c', wMode: 'detailed', apiKey: ''
+        });
+        assert.match(serializedDetailed, /(^|&)wm=detailed(&|$)/);
+
+        const serializedCompact = serializeURLState({
+            format: '24', seconds: false, font: 'Inter', category: 'Featured',
+            bg: 'nature', name: '', message: '', loc: '', loc2: '', loc3: '',
+            units: 'c', wMode: 'compact', apiKey: ''
+        });
+        assert.doesNotMatch(serializedCompact, /wm=/);
+
+        const serializedWithoutWotd = serializeURLState({
+            format: '24', seconds: false, font: 'Inter', category: 'Featured',
+            bg: 'nature', name: '', message: '', loc: '', loc2: '', loc3: '',
+            units: 'c', wMode: 'compact', apiKey: '', wotd: false
+        });
+        assert.doesNotMatch(serializedWithoutWotd, /wotd/);
+    });
+
+    test('validates weather widget interactive accessibility attributes and caching in index.html', () => {
+        const indexPath = path.join(process.cwd(), 'index.html');
+        const htmlContent = fs.readFileSync(indexPath, 'utf8');
+
+        // Accessibility attributes and cursor styling on #weather-widget
+        assert.match(htmlContent, /id="weather-widget"[^>]*role="button"/);
+        assert.match(htmlContent, /id="weather-widget"[^>]*tabindex="0"/);
+        assert.match(htmlContent, /id="weather-widget"[^>]*aria-expanded=/);
+        assert.match(htmlContent, /id="weather-widget"[^>]*cursor-pointer/);
+
+        // Dynamic ARIA label and tooltip based on display mode
+        assert.match(htmlContent, /Weather forecast: click to collapse to compact view/);
+        assert.match(htmlContent, /Weather forecast: click to expand detailed hourly forecast/);
+        assert.match(htmlContent, /Click to collapse hourly forecast/);
+
+        // Click and keyboard interaction (Enter / Space) on #weather-widget
+        assert.match(htmlContent, /weatherWidget\.addEventListener\('click'/);
+        assert.match(htmlContent, /weatherWidget\.addEventListener\('keydown'/);
+        assert.match(htmlContent, /(?:e\.key === 'Enter' \|\| e\.key === ' '|e\.code === 'Space')/);
+
+        // In-memory weather caching mechanism with emptiness guard
+        assert.match(htmlContent, /cachedWeatherLocations/);
+        assert.match(htmlContent, /cachedWeatherTimestamp/);
+        assert.match(htmlContent, /cachedWeatherLocations && cachedWeatherLocations\.length > 0/);
+    });
+});
+
 describe('Service Worker File Integrity', () => {
     test('validates sw.js existence and cache manifest assets', () => {
         const swPath = path.join(process.cwd(), 'sw.js');
