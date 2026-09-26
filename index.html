@@ -110,16 +110,7 @@
     <div id="scrim"></div>
 
     <!-- Top Widgets Bar (Responsive for Mobile and Desktop) -->
-    <div class="fixed top-4 left-4 right-4 md:top-6 md:left-6 md:right-6 flex flex-col md:flex-row justify-between items-stretch md:items-start gap-3 z-10 pointer-events-none">
-        <!-- Wiktionary Word of the Day Widget -->
-        <div id="wotd-widget" class="hidden-ui pointer-events-auto glass p-3 md:p-4 rounded-2xl flex flex-col gap-1 text-sm hidden w-full md:w-auto md:max-w-xs">
-            <div class="flex items-center justify-between text-xs opacity-70 mb-1">
-                <span class="font-medium tracking-wide uppercase text-[10px]">Word of the Day</span>
-                <a id="wotd-link" href="https://en.wiktionary.org/wiki/Wiktionary:Word_of_the_day" target="_blank" rel="noopener" class="hover:underline opacity-80">Wiktionary ↗</a>
-            </div>
-            <div id="wotd-term" class="font-semibold text-base capitalize">--</div>
-            <div id="wotd-def" class="text-xs opacity-80 line-clamp-2 md:line-clamp-3 leading-snug">--</div>
-        </div>
+    <div class="fixed top-4 left-4 right-4 md:top-6 md:left-6 md:right-6 flex flex-col md:flex-row justify-end items-stretch md:items-start gap-3 z-10 pointer-events-none">
 
         <!-- Weather Widget for Up to 3 Locations -->
         <div id="weather-widget" class="hidden-ui pointer-events-auto glass p-3 md:p-4 rounded-2xl flex flex-col gap-2 md:gap-3 text-sm hidden w-full md:w-auto md:max-w-sm max-h-[35vh] md:max-h-[80vh] overflow-y-auto">
@@ -239,11 +230,6 @@
                 </div>
 
                 <div class="setting-row">
-                    <label class="text-sm opacity-80">Word of the Day</label>
-                    <input type="checkbox" id="set-show-wotd" checked>
-                </div>
-
-                <div class="setting-row">
                     <label class="text-sm opacity-80">Unsplash Access Key</label>
                     <input type="password" id="set-api-key" placeholder="Paste Access Key here">
                 </div>
@@ -271,8 +257,7 @@
             formatHourlyTime,
             resolveBackgroundKeywords,
             parseCoordinateQuery,
-            extractDailySummary,
-            getDailyWordFromList
+            extractDailySummary
         } from './src/app-core.js';
 
         // Initial Defaults
@@ -289,7 +274,6 @@
             loc3: '',
             units: 'c',
             wMode: 'compact',
-            wotd: true,
             apiKey: '',
             seed: Math.floor(Math.random() * 1000)
         };
@@ -336,14 +320,12 @@
             document.getElementById('set-weather-loc3').value = state.loc3 || '';
             document.getElementById('set-weather-units').value = state.units || 'c';
             document.getElementById('set-weather-mode').value = state.wMode || 'compact';
-            document.getElementById('set-show-wotd').checked = state.wotd !== false;
             document.getElementById('set-api-key').value = state.apiKey || '';
 
             updateKeywordVisibility();
             updateCustomMessage();
             updateSyncURL(true);
             fetchWeather();
-            fetchWotd();
         }
 
         function updateKeywordVisibility() {
@@ -563,68 +545,6 @@
             }
         }
 
-        let wordsDatabase = [];
-
-        async function loadWordsDatabase() {
-            if (wordsDatabase.length > 0) return wordsDatabase;
-            try {
-                const res = await fetch('words.json');
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                wordsDatabase = await res.json();
-            } catch (err) {
-                console.warn('Failed to load words.json, using fallback:', err.message);
-                wordsDatabase = [
-                    {
-                        w: 'serendipity',
-                        p: 'noun',
-                        pr: '/ˌsɛɹənˈdɪpɪti/',
-                        d: 'The faculty of making fortunate discoveries by accident.',
-                        e: 'Coined by Horace Walpole in 1754 from Serendip.',
-                        u: 'https://en.wiktionary.org/wiki/serendipity'
-                    }
-                ];
-            }
-            return wordsDatabase;
-        }
-
-        async function fetchWotd() {
-            const widget = document.getElementById('wotd-widget');
-            const termEl = document.getElementById('wotd-term');
-            const defEl = document.getElementById('wotd-def');
-            const linkEl = document.getElementById('wotd-link');
-
-            if (state.wotd === false) {
-                widget.classList.add('hidden');
-                return;
-            }
-
-            const words = await loadWordsDatabase();
-            const todayWord = getDailyWordFromList(words, new Date());
-
-            if (!todayWord) {
-                widget.classList.add('hidden');
-                return;
-            }
-
-            termEl.textContent = todayWord.w;
-
-            const metaParts = [];
-            if (todayWord.p) metaParts.push(todayWord.p);
-            if (todayWord.pr) metaParts.push(todayWord.pr);
-
-            const prefix = metaParts.length > 0 ? `(${metaParts.join(' · ')}) ` : '';
-            defEl.textContent = `${prefix}${todayWord.d}`;
-
-            if (todayWord.e) {
-                defEl.title = `Etymology: ${todayWord.e}`;
-            } else {
-                defEl.removeAttribute('title');
-            }
-
-            linkEl.href = todayWord.u || `https://en.wiktionary.org/wiki/${encodeURIComponent(todayWord.w)}`;
-            widget.classList.remove('hidden');
-        }
-
         function updateSyncURL(isInitial = false) {
             const newSearch = `?${serializeURLState(state)}`;
             syncInput.value = window.location.origin + window.location.pathname + newSearch;
@@ -812,10 +732,6 @@
                     state.wMode = val;
                     fetchWeather();
                 }
-                if (id === 'set-show-wotd') {
-                    state.wotd = val;
-                    fetchWotd();
-                }
                 if (id === 'set-api-key') {
                     state.apiKey = val;
                     fetchBackground();
@@ -848,7 +764,7 @@
 
         // Click or tap anywhere outside widgets to toggle UI visibility
         document.addEventListener('click', (e) => {
-            if (e.target.closest('#settings-panel') || e.target.closest('#wotd-widget') || e.target.closest('#weather-widget') || e.target.closest('button') || e.target.closest('a') || e.target.closest('input') || e.target.closest('select')) {
+            if (e.target.closest('#settings-panel') || e.target.closest('#weather-widget') || e.target.closest('button') || e.target.closest('a') || e.target.closest('input') || e.target.closest('select')) {
                 return;
             }
             document.body.classList.toggle('ui-hidden');

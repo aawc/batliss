@@ -9,8 +9,8 @@ Create a standalone webpage on GitHub Pages that works very similar to https://w
 5.  **No Cookies / Persistence**: Do not use cookies or local storage for settings. Use query parameters in the URL for all settings. Generate a permalink that the user can copy to save their setup.
 6.  **UI**: The UI should be minimal and elegant. Settings should be accessible but hidden by default (e.g., on hover, touch tap, or via a small icon). Use a glassmorphism effect for UI elements.
 7.  **Fallbacks**: Provide fallback images (dynamic Picsum Photos or static Unsplash fallback) and quotes if external API calls fail.
-8.  **Location Weather Widget**: Always infer primary location via IP geolocation without prompting the user in Settings. Allow the user to specify up to two optional additional locations (`loc2`, `loc3`). Support `compact` mode (daily summary with High/Low temps, precip %, UV, wind) and `detailed` mode (daily summary + hourly forecast strip), controlled by URL parameter `wm`.
-9.  **Automated Word of the Day System**: Displays today's word, pronunciation, definition, etymology, and direct Wiktionary permalink in a top-left glassmorphic card (controlled by URL parameter `wotd`). Built using an automated CI pipeline sampling Kaikki dictionary dumps into a compact `words.json` containing 100% authentic, verified Wiktionary headwords with active article links, selected deterministically in the client via date hash PRNG.
+8.  **Location Weather Widget**: Always infer primary location via IP geolocation without prompting the user in Settings. Allow the user to specify up to two optional additional locations (`loc2`, `loc3`). Support `compact` mode (daily summary with High/Low temps, precip %, UV, wind) and `detailed` mode (daily summary + hourly forecast strip), controlled by URL parameter `wm` and toggled interactively via click or Enter/Space keyboard navigation on the widget with in-memory caching.
+9.  **Curated Quotes Library**: Offline database (`quotes.json`) featuring over 500 authentic literary, philosophical, cinematographic, and historical quotes with source citations and zero external network dependencies.
 10. **Architecture & Design Documents**: All feature designs, specifications, postmortems, and architecture plans are stored under the `designs/` directory.
 
 Tech Stack:
@@ -20,4 +20,4 @@ Tech Stack:
 *   Google Fonts for typography.
 *   Unsplash API (or keyless Picsum fallback) for images.
 *   Open-Meteo API for keyless location geocoding and weather forecasts.
-*   Kaikki dictionary dump pipeline + local static `words.json` for Word of the Day.
+*   Curated local static `quotes.json` database for inspiration.

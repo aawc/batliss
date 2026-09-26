@@ -31,4 +31,4 @@ jobs:
             --experimental-test-coverage \
             --test-coverage-lines=90 \
             --test-coverage-branches=80 \
-            test/app.test.js test/wotd-utils.test.js test/generate-words.test.js
+            test/app.test.js

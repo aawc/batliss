@@ -13,10 +13,7 @@ import {
     formatHourlyTime,
     resolveBackgroundKeywords,
     parseCoordinateQuery,
-    extractDailySummary,
-    hashString,
-    createPRNG,
-    getDailyWordFromList
+    extractDailySummary
 } from '../src/app-core.js';
 
 // Unit Tests Suite
@@ -45,6 +42,11 @@ describe('Weather WMO Icon Mapping', () => {
     test('returns thunderstorm emoji for storm codes', () => {
         assert.equal(getWeatherIcon(95), '🌩️');
         assert.equal(getWeatherIcon(99), '🌩️');
+    });
+
+    test('returns fog emoji for fog codes 45 and 48', () => {
+        assert.equal(getWeatherIcon(45), '🌫️');
+        assert.equal(getWeatherIcon(48), '🌫️');
     });
 
     test('returns thermometer default for unknown code', () => {
@@ -82,6 +84,13 @@ describe('Greeting Time Formatting', () => {
     test('returns Good night for hours >= 22', () => {
         assert.equal(formatGreeting(23, 'Alex'), 'Good night, Alex.');
     });
+
+    test('formats greeting when name is omitted or empty string', () => {
+        assert.equal(formatGreeting(8), 'Good morning.');
+        assert.equal(formatGreeting(14, ''), 'Good afternoon.');
+        assert.equal(formatGreeting(19, null), 'Good evening.');
+        assert.equal(formatGreeting(23, undefined), 'Good night.');
+    });
 });
 
 describe('URL Search Parameter Parsing & Serialization', () => {
@@ -102,6 +111,25 @@ describe('URL Search Parameter Parsing & Serialization', () => {
         const query = '?w_mode=detailed';
         const parsed = parseURLState(query);
         assert.equal(parsed.wMode, 'detailed');
+    });
+
+    test('parses state with all optional parameters including cat, bg, font, loc, loc3, apiKey, and s=0', () => {
+        const query = '?f=24&s=0&font=Playfair&bg=mountains&cat=Nature&n=Bob&m=Peace&loc=Paris&loc2=London&loc3=Rome&units=c&wm=detailed&key=testkey123';
+        const parsed = parseURLState(query);
+
+        assert.equal(parsed.format, '24');
+        assert.equal(parsed.seconds, false);
+        assert.equal(parsed.font, 'Playfair');
+        assert.equal(parsed.bg, 'mountains');
+        assert.equal(parsed.category, 'Nature');
+        assert.equal(parsed.name, 'Bob');
+        assert.equal(parsed.message, 'Peace');
+        assert.equal(parsed.loc, 'Paris');
+        assert.equal(parsed.loc2, 'London');
+        assert.equal(parsed.loc3, 'Rome');
+        assert.equal(parsed.units, 'c');
+        assert.equal(parsed.wMode, 'detailed');
+        assert.equal(parsed.apiKey, 'testkey123');
     });
 
     test('serializes state to URL query string using wm parameter', () => {
@@ -129,6 +157,33 @@ describe('URL Search Parameter Parsing & Serialization', () => {
         assert.match(serialized, /loc2=Tokyo/);
         assert.match(serialized, /units=f/);
         assert.match(serialized, /wm=detailed/);
+    });
+
+    test('serializes state with loc, loc3, apiKey, and handles omitted optional fields', () => {
+        const state = {
+            format: '24',
+            seconds: false,
+            font: 'Inter',
+            category: 'Featured',
+            bg: 'nature',
+            name: '',
+            message: '',
+            loc: 'Berlin',
+            loc2: '',
+            loc3: 'Madrid',
+            units: 'c',
+            wMode: 'compact',
+            apiKey: 'secret_key_abc'
+        };
+
+        const serialized = serializeURLState(state);
+        assert.match(serialized, /loc=Berlin/);
+        assert.match(serialized, /loc3=Madrid/);
+        assert.match(serialized, /key=secret_key_abc/);
+        assert.doesNotMatch(serialized, /loc2=/);
+        assert.doesNotMatch(serialized, /n=/);
+        assert.doesNotMatch(serialized, /m=/);
+        assert.doesNotMatch(serialized, /wm=/);
     });
 });
 
@@ -217,56 +272,65 @@ describe('Daily Weather Summary Extractor', () => {
         const summary = extractDailySummary(dailyData, 'f');
         assert.equal(summary.highLowText, ' (H:68° L:50°)');
     });
+
+    test('returns empty summary when dailyData is null, undefined, or empty object', () => {
+        assert.deepEqual(extractDailySummary(null), { highLowText: '', detailsStr: '' });
+        assert.deepEqual(extractDailySummary(undefined), { highLowText: '', detailsStr: '' });
+        assert.deepEqual(extractDailySummary({}), { highLowText: '', detailsStr: '' });
+    });
+
+    test('handles missing precipitation and UV data gracefully in Celsius and Fahrenheit', () => {
+        const dailyData = {
+            temperature_2m_max: [15],
+            temperature_2m_min: [5]
+        };
+        const summaryC = extractDailySummary(dailyData, 'c');
+        assert.equal(summaryC.highLowText, ' (H:15° L:5°)');
+        assert.equal(summaryC.detailsStr, '');
+
+        const summaryF = extractDailySummary(dailyData, 'f');
+        assert.equal(summaryF.highLowText, ' (H:59° L:41°)');
+        assert.equal(summaryF.detailsStr, '');
+    });
+
+    test('handles dailyData with empty array fields gracefully', () => {
+        const dailyData = {
+            temperature_2m_max: [],
+            temperature_2m_min: [],
+            precipitation_probability_max: [],
+            uv_index_max: []
+        };
+        const summary = extractDailySummary(dailyData, 'c');
+        assert.equal(summary.highLowText, '');
+        assert.equal(summary.detailsStr, '');
+    });
 });
 
 describe('Quotes JSON Schema & File Integrity', () => {
-    test('loads quotes.json and validates array length and object fields', () => {
+    test('loads quotes.json and validates array length, schema fields, and absence of duplicates', () => {
         const quotesPath = path.join(process.cwd(), 'quotes.json');
         assert.equal(fs.existsSync(quotesPath), true);
 
         const quotesData = JSON.parse(fs.readFileSync(quotesPath, 'utf8'));
         assert.ok(Array.isArray(quotesData));
-        assert.ok(quotesData.length >= 200, 'Quotes database should contain at least 200 quotes');
+        assert.ok(quotesData.length >= 500, `Quotes database should contain at least 500 quotes (found ${quotesData.length})`);
+
+        const seenQuotes = new Set();
+        const duplicates = [];
 
         for (const entry of quotesData) {
-            assert.ok(typeof entry.c === 'string' && entry.c.length > 0, 'Quote content must be a non-empty string');
-            assert.ok(typeof entry.a === 'string' && entry.a.length > 0, 'Quote author must be a non-empty string');
-        }
-    });
-});
+            assert.ok(typeof entry.c === 'string' && entry.c.trim().length > 0, 'Quote content must be a non-empty string');
+            assert.ok(typeof entry.a === 'string' && entry.a.trim().length > 0, 'Quote author must be a non-empty string');
+            assert.ok(typeof entry.s === 'string' && entry.s.trim().length > 0, 'Quote source must be a non-empty string');
 
-describe('Word of the Day Database Schema & Wiktionary Authenticity', () => {
-    test('loads words.json and validates array length, schema fields, and absence of synthetic markers', () => {
-        const wordsPath = path.join(process.cwd(), 'words.json');
-        assert.equal(fs.existsSync(wordsPath), true);
-
-        const wordsData = JSON.parse(fs.readFileSync(wordsPath, 'utf8'));
-        assert.ok(Array.isArray(wordsData));
-        assert.ok(wordsData.length >= 1000, 'Word database should contain at least 1,000 words');
-
-        for (const entry of wordsData) {
-            assert.ok(typeof entry.w === 'string' && entry.w.length >= 3, 'Headword must be at least 3 chars');
-            assert.match(entry.w, /^[a-z]{3,22}$/, `Word "${entry.w}" must contain only lowercase letters`);
-            assert.ok(['noun', 'verb', 'adj', 'adv'].includes(entry.p), 'Part of speech must be standard');
-            assert.ok(typeof entry.d === 'string' && entry.d.length >= 10, 'Definition must be non-empty string');
-            assert.equal(entry.d.includes('Form associated with'), false, `Synthetic definition marker in ${entry.w}`);
-            if (entry.e) {
-                assert.equal(entry.e.includes('Derivative formed from'), false, `Synthetic etymology marker in ${entry.w}`);
+            const normalized = entry.c.trim().toLowerCase();
+            if (seenQuotes.has(normalized)) {
+                duplicates.push(entry.c);
             }
-            assert.equal(entry.u, `https://en.wiktionary.org/wiki/${encodeURIComponent(entry.w)}`, 'Wiktionary link must match headword');
+            seenQuotes.add(normalized);
         }
-    });
 
-    test('validates deterministic daily word selection from words.json schema', () => {
-        const wordsPath = path.join(process.cwd(), 'words.json');
-        const wordsData = JSON.parse(fs.readFileSync(wordsPath, 'utf8'));
-
-        const wordToday = getDailyWordFromList(wordsData, new Date('2026-07-30T00:00:00Z'));
-        const wordTomorrow = getDailyWordFromList(wordsData, new Date('2026-07-31T00:00:00Z'));
-
-        assert.ok(wordToday && typeof wordToday.w === 'string');
-        assert.ok(wordTomorrow && typeof wordTomorrow.w === 'string');
-        assert.notEqual(wordToday.w, wordTomorrow.w);
+        assert.equal(duplicates.length, 0, `Duplicate quotes found (${duplicates.length}): ${duplicates.slice(0, 5).join(' | ')}`);
     });
 });
 
@@ -276,10 +340,10 @@ describe('Service Worker File Integrity', () => {
         assert.equal(fs.existsSync(swPath), true);
 
         const swContent = fs.readFileSync(swPath, 'utf8');
-        assert.match(swContent, /CACHE_NAME = 'batliss-cache-v4'/);
+        assert.match(swContent, /CACHE_NAME = 'batliss-cache-v5'/);
         assert.match(swContent, /'\.\/index\.html'/);
         assert.match(swContent, /'\.\/src\/app-core\.js'/);
-        assert.match(swContent, /'\.\/words\.json'/);
+        assert.doesNotMatch(swContent, /words\.json/);
         assert.match(swContent, /'\.\/quotes\.json'/);
         assert.match(swContent, /'\.\/manifest\.json'/);
         assert.match(swContent, /'\.\/icon-192\.png'/);
@@ -294,7 +358,9 @@ describe('Mobile Responsive Layout Integrity', () => {
         assert.equal(fs.existsSync(indexPath), true);
 
         const htmlContent = fs.readFileSync(indexPath, 'utf8');
-        assert.match(htmlContent, /flex flex-col md:flex-row justify-between/);
+        assert.match(htmlContent, /justify-end/);
+        assert.doesNotMatch(htmlContent, /wotd-widget/);
+        assert.doesNotMatch(htmlContent, /set-show-wotd/);
         assert.match(htmlContent, /text-6xl sm:text-7xl md:text-9xl/);
     });
 
@@ -304,14 +370,5 @@ describe('Mobile Responsive Layout Integrity', () => {
         assert.match(htmlContent, /\.hidden-ui\s*\{\s*opacity:\s*1/);
         assert.match(htmlContent, /body\.ui-hidden \.hidden-ui/);
         assert.match(htmlContent, /document\.body\.classList\.toggle\('ui-hidden'\)/);
-    });
-
-    test('validates static words.json loader and module import in index.html', () => {
-        const indexPath = path.join(process.cwd(), 'index.html');
-        const htmlContent = fs.readFileSync(indexPath, 'utf8');
-        assert.match(htmlContent, /Content-Security-Policy/);
-        assert.match(htmlContent, /from '\.\/src\/app-core\.js'/);
-        assert.match(htmlContent, /fetch\('words\.json'\)/);
-        assert.match(htmlContent, /getDailyWordFromList\(words/);
     });
 });

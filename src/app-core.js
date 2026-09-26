@@ -1,45 +1,8 @@
 /**
  * src/app-core.js
  * Single source of truth for pure dashboard logic: state serialization,
- * weather data formatting, greeting calculations, and deterministic PRNG.
+ * weather data formatting, and greeting calculations.
  */
-
-// Mulberry32 deterministic 32-bit PRNG
-export function createPRNG(seed) {
-  let s = (seed >>> 0) || 1;
-  return function next() {
-    s = (s + 0x6D2B79F5) >>> 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-// 32-bit FNV-1a Hash
-export function hashString(str) {
-  let hash = 2166136261 >>> 0;
-  for (let i = 0; i < str.length; i++) {
-    hash ^= str.charCodeAt(i);
-    hash = Math.imul(hash, 16777619) >>> 0;
-  }
-  return hash >>> 0;
-}
-
-// Deterministic Daily Word Picker
-export function getDailyWordFromList(wordsList, dateObj = new Date()) {
-  if (!Array.isArray(wordsList) || wordsList.length === 0) return null;
-
-  const y = dateObj.getFullYear();
-  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const d = String(dateObj.getDate()).padStart(2, '0');
-  const dateKey = `${y}-${m}-${d}`;
-
-  const dateHash = hashString(dateKey);
-  const prng = createPRNG(dateHash);
-  const randomIndex = Math.floor(prng() * wordsList.length);
-
-  return wordsList[randomIndex];
-}
 
 // Weather WMO Code to Emoji Icon
 export function getWeatherIcon(code) {
@@ -82,7 +45,6 @@ export function parseURLState(searchString) {
     loc3: '',
     units: 'c',
     wMode: 'compact',
-    wotd: true,
     apiKey: ''
   };
 
@@ -99,7 +61,6 @@ export function parseURLState(searchString) {
   if (params.has('units')) state.units = params.get('units');
   if (params.has('wm')) state.wMode = params.get('wm');
   else if (params.has('w_mode')) state.wMode = params.get('w_mode');
-  if (params.has('wotd')) state.wotd = params.get('wotd') === '1';
   if (params.has('key')) state.apiKey = params.get('key');
 
   return state;
@@ -120,7 +81,6 @@ export function serializeURLState(state) {
   if (state.loc3) params.set('loc3', state.loc3);
   if (state.units && state.units !== 'c') params.set('units', state.units);
   if (state.wMode && state.wMode !== 'compact') params.set('wm', state.wMode);
-  if (state.wotd === false) params.set('wotd', '0');
   if (state.apiKey) params.set('key', state.apiKey);
 
   return params.toString();

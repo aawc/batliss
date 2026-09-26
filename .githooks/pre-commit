@@ -1,6 +1,6 @@
 #!/bin/sh
 echo "Running pre-commit unit tests across all suites..."
-node --test test/app.test.js test/wotd-utils.test.js test/generate-words.test.js
+node --test test/app.test.js
 if [ $? -ne 0 ]; then
     echo "Unit tests failed! Commit aborted."
     exit 1

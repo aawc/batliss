@@ -6,8 +6,8 @@ A beautiful, standalone new tab page for GitHub Pages, inspired by [Tabliss](htt
 
 *   **Beautiful Backgrounds**: Pulled from Unsplash based on your preferences.
 *   **Clock**: Displays current time in your local timezone.
-*   **Location Weather**: Displays current weather, daily summary (High/Low temps, precipitation chance, UV index, wind speed), and hourly forecasts for up to 3 locations (primary location is always auto-inferred via IP).
-*   **Word of the Day**: Displays today's featured word, IPA pronunciation, definition, etymology, and direct Wiktionary permalink in a glassmorphic top-left badge. Uses a pre-generated, static compact dictionary (`words.json`) sampled from Kaikki English dictionary dumps and selected deterministically via a date-based PRNG.
+*   **Location Weather**: Displays current weather, daily summary (High/Low temps, precipitation chance, UV index, wind speed), and interactive expandable hourly forecasts for up to 3 locations (primary location is always auto-inferred via IP). Click or press Enter/Space on the widget to toggle between compact and detailed views.
+*   **Quotes**: Curated library of over 500 authentic literary, philosophical, cinematographic, and historical quotes with source citations.
 *   **Custom Message**: Set a personal message to display on the page.
 *   **No Cookies**: All settings are stored in the URL, allowing for easy sharing and bookmarking via permalinks.
 *   **Privacy Focused**: No tracking, no cookies.
@@ -40,7 +40,6 @@ You can configure the page by adding query parameters to the URL:
 *   `loc3`: Optional third location (e.g., `loc3=NewYork`).
 *   `units`: Temperature scale (`c` for Celsius, `f` for Fahrenheit).
 *   `wm`: Weather display mode (`compact` for daily summary, `detailed` for daily summary + hourly forecast strip).
-*   `wotd`: Toggle Word of the Day widget (`1` for show, `0` for hide).
 
 Use the "Copy" button in the settings panel to generate a permalink with your current settings.
 
@@ -49,19 +48,13 @@ Use the "Copy" button in the settings panel to generate a permalink with your cu
 Run unit tests locally via Node.js native test runner:
 
 ```bash
-node --test test/app.test.js test/wotd-utils.test.js test/generate-words.test.js
+node --test test/app.test.js
 ```
 
 Run test suite with native code coverage:
 
 ```bash
-node --test --experimental-test-coverage test/wotd-utils.test.js test/generate-words.test.js test/app.test.js
+node --test --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=80 test/app.test.js
 ```
 
-Verify that all dictionary entries in `words.json` exist as active articles on Wiktionary:
-
-```bash
-node scripts/verify-wiktionary-words.mjs
-```
-
-A version-controlled Git pre-commit hook is configured (`.githooks/pre-commit`) to automatically run all unit and integration test suites before every commit. CI is enforced via GitHub Actions (`.github/workflows/ci.yml`) on every push and pull request.
+A version-controlled Git pre-commit hook is configured (`.githooks/pre-commit`) to automatically run the unit test suite before every commit. CI is enforced via GitHub Actions (`.github/workflows/ci.yml`) on every push and pull request.
